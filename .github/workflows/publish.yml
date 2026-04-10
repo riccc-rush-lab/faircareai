@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/faircareai
+      url: https://test.pypi.org/p/faircare
     permissions:
       id-token: write  # Required for trusted publishing
 
@@ -129,7 +129,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/faircareai
+      url: https://pypi.org/p/faircare
     permissions:
       id-token: write  # Required for trusted publishing
 

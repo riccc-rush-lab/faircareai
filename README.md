@@ -35,7 +35,7 @@ Most hospitals have no standardized way to detect, quantify, or present these di
 ## How It Works
 
 ```bash
-pip install faircareai
+pip install faircare
 ```
 
 ```python
@@ -84,24 +84,24 @@ results.to_pptx("committee_deck.pptx")                        # PowerPoint for m
 ### Basic Installation
 
 ```bash
-pip install faircareai
+pip install faircare
 ```
 
 ### With Export Capabilities (PDF/PPTX)
 
 ```bash
-pip install "faircareai[export]"
+pip install "faircare[export]"
 python -m playwright install chromium  # Required for PDF generation
 ```
 
 **Note**: PDF generation uses Playwright for cross-platform compatibility. See [docs/PDF_SETUP_GUIDE.md](docs/PDF_SETUP_GUIDE.md) for details.
 
-PNG export uses Kaleido for static Plotly rendering (included in `faircareai[export]`).
+PNG export uses Kaleido for static Plotly rendering (included in `faircare[export]`).
 
 ### With Compliance Validation (XML Schema)
 
 ```bash
-pip install "faircareai[compliance]"
+pip install "faircare[compliance]"
 ```
 
 Installs `xmlschema` to validate AI model card XML against the v0.1 XSD.
