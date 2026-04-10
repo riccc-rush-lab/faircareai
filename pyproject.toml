@@ -101,7 +101,7 @@ dev = [
 
 # All optional dependencies
 all = [
-    "faircareai[export,dev,compliance]",
+    "faircare[export,dev,compliance]",
 ]
 
 [project.scripts]
