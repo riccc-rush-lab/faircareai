@@ -111,8 +111,8 @@ def disparity_df():
 
 
 @pytest.fixture
-def vancalster_results():
-    """Create Van Calster-style results dict for vancalster_plots functions."""
+def subgroup_results():
+    """Create Van Calster-style results dict for subgroup_plots functions."""
     thresholds = [0.1, 0.2, 0.3, 0.4, 0.5]
     prevalence = 0.28
 
@@ -311,56 +311,56 @@ class TestPlotsModule:
 
 
 # =============================================================================
-# TEST CLASS: vancalster_plots.py (5 functions - Van Calster 4 Required)
+# TEST CLASS: subgroup_plots.py (5 functions - Van Calster 4 Required)
 # Van Calster et al. (2025) Lancet Digital Health
 # =============================================================================
 
 
-class TestVanCalsterModule:
-    """Audit vancalster_plots.py - Van Calster 4 required figures."""
+class TestSubgroupPlotsModule:
+    """Audit subgroup_plots.py - Van Calster 4 required figures."""
 
-    def test_create_auroc_forest_plot(self, vancalster_results):
+    def test_create_auroc_forest_plot(self, subgroup_results):
         """Test AUROC forest plot - Van Calster Figure 1: Discrimination."""
-        from faircareai.visualization.vancalster_plots import create_auroc_forest_plot
+        from faircareai.visualization.subgroup_plots import create_auroc_forest_plot
 
-        fig = create_auroc_forest_plot(vancalster_results)
+        fig = create_auroc_forest_plot(subgroup_results)
         assert_valid_plotly_figure(fig, "create_auroc_forest_plot")
         assert_has_wcag_alt_text(fig, "create_auroc_forest_plot")
 
-    def test_create_calibration_plot_by_subgroup(self, vancalster_results):
+    def test_create_calibration_plot_by_subgroup(self, subgroup_results):
         """Test calibration by subgroup - Van Calster Figure 2: Calibration."""
-        from faircareai.visualization.vancalster_plots import (
+        from faircareai.visualization.subgroup_plots import (
             create_calibration_plot_by_subgroup,
         )
 
-        fig = create_calibration_plot_by_subgroup(vancalster_results)
+        fig = create_calibration_plot_by_subgroup(subgroup_results)
         assert_valid_plotly_figure(fig, "create_calibration_plot_by_subgroup")
         assert_has_wcag_alt_text(fig, "create_calibration_plot_by_subgroup")
 
-    def test_create_decision_curve_by_subgroup(self, vancalster_results):
+    def test_create_decision_curve_by_subgroup(self, subgroup_results):
         """Test decision curve by subgroup - Van Calster Figure 3: Clinical utility."""
-        from faircareai.visualization.vancalster_plots import (
+        from faircareai.visualization.subgroup_plots import (
             create_decision_curve_by_subgroup,
         )
 
-        # Use vancalster fixture which has the required decision_curve nested data
-        fig = create_decision_curve_by_subgroup(vancalster_results)
+        # Use subgroup_results fixture which has the required decision_curve nested data
+        fig = create_decision_curve_by_subgroup(subgroup_results)
         assert_valid_plotly_figure(fig, "create_decision_curve_by_subgroup")
 
-    def test_create_risk_distribution_plot(self, vancalster_results):
+    def test_create_risk_distribution_plot(self, subgroup_results):
         """Test risk distribution plot - Van Calster Figure 4: Probability distributions."""
-        from faircareai.visualization.vancalster_plots import create_risk_distribution_plot
+        from faircareai.visualization.subgroup_plots import create_risk_distribution_plot
 
-        fig = create_risk_distribution_plot(vancalster_results)
+        fig = create_risk_distribution_plot(subgroup_results)
         assert_valid_plotly_figure(fig, "create_risk_distribution_plot")
         assert_has_wcag_alt_text(fig, "create_risk_distribution_plot")
 
-    def test_create_vancalster_dashboard(self, vancalster_results):
+    def test_create_subgroup_dashboard(self, subgroup_results):
         """Test Van Calster dashboard - All 4 figures combined."""
-        from faircareai.visualization.vancalster_plots import create_vancalster_dashboard
+        from faircareai.visualization.subgroup_plots import create_subgroup_dashboard
 
-        fig = create_vancalster_dashboard(vancalster_results)
-        assert_valid_plotly_figure(fig, "create_vancalster_dashboard")
+        fig = create_subgroup_dashboard(subgroup_results)
+        assert_valid_plotly_figure(fig, "create_subgroup_dashboard")
 
 
 # =============================================================================
@@ -570,9 +570,9 @@ class TestVisualizationEdgeCases:
         fig = create_forest_plot(many_groups_df, metric="tpr")
         assert fig is not None, "Many groups should return a figure"
 
-    def test_vancalster_empty_groups(self):
+    def test_subgroup_empty_groups(self):
         """Test Van Calster functions with empty groups."""
-        from faircareai.visualization.vancalster_plots import create_auroc_forest_plot
+        from faircareai.visualization.subgroup_plots import create_auroc_forest_plot
 
         empty_results = {"groups": {}}
         fig = create_auroc_forest_plot(empty_results)
@@ -587,9 +587,9 @@ class TestVisualizationEdgeCases:
 class TestWCAGAccessibility:
     """Verify WCAG 2.1 AA compliance for all visualizations."""
 
-    def test_vancalster_plots_have_alt_text(self, vancalster_results):
+    def test_subgroup_plots_have_alt_text(self, subgroup_results):
         """Verify all Van Calster plots have descriptive alt text."""
-        from faircareai.visualization.vancalster_plots import (
+        from faircareai.visualization.subgroup_plots import (
             create_auroc_forest_plot,
             create_calibration_plot_by_subgroup,
         )
@@ -601,7 +601,7 @@ class TestWCAGAccessibility:
         ]
 
         for name, func in functions:
-            fig = func(vancalster_results)
+            fig = func(subgroup_results)
             meta = getattr(fig.layout, "meta", None)
             if meta is not None and isinstance(meta, dict):
                 description = meta.get("description", "")

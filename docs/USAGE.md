@@ -45,7 +45,7 @@ faircareai version
 
 ```python
 from faircareai import FairCareAudit, FairnessConfig
-from faircareai.core.config import FairnessMetric, UseCaseType
+from faircareai import FairnessMetric, UseCaseType
 
 # 1. Load your model predictions
 audit = FairCareAudit(
@@ -478,7 +478,7 @@ Container for audit results with export and visualization methods.
 | `audit_id` | str | Unique identifier for this audit run |
 | `run_timestamp` | str \| None | ISO timestamp when the audit executed |
 | `descriptive_stats` | dict | Section 1: Cohort summary |
-| `overall_performance` | dict | Section 2: TRIPOD+AI metrics |
+| `overall_performance` | dict | Section 2: Discrimination, calibration & classification metrics |
 | `subgroup_performance` | dict | Section 3: By-group performance |
 | `fairness_metrics` | dict | Section 4: Fairness metrics |
 | `intersectional` | dict | Intersectional analysis |
@@ -501,7 +501,7 @@ Single-page governance summary with traffic light status.
 plot_discrimination() -> plotly.graph_objects.Figure
 ```
 
-ROC and Precision-Recall curves (TRIPOD+AI 2.1).
+ROC and Precision-Recall curves (discrimination analysis).
 
 ##### plot_overall_calibration()
 
@@ -509,7 +509,7 @@ ROC and Precision-Recall curves (TRIPOD+AI 2.1).
 plot_overall_calibration() -> plotly.graph_objects.Figure
 ```
 
-Calibration curve for overall model (TRIPOD+AI 2.2).
+Calibration curve for overall model (calibration analysis).
 
 ##### plot_calibration()
 
@@ -637,7 +637,7 @@ Export environment + run metadata for reproducibility.
 to_model_card(path: str | Path) -> Path
 ```
 
-Export a CHAI Applied Model Card-aligned Markdown report.
+Export a AI model card Markdown report.
 
 ##### to_chai_model_card()
 
@@ -645,7 +645,7 @@ Export a CHAI Applied Model Card-aligned Markdown report.
 to_chai_model_card(path: str | Path) -> Path
 ```
 
-Export a CHAI Applied Model Card-aligned XML file (v0.1 schema).
+Export a AI model card XML file (v0.1 schema).
 
 ##### to_chai_model_card_json()
 
@@ -653,7 +653,7 @@ Export a CHAI Applied Model Card-aligned XML file (v0.1 schema).
 to_chai_model_card_json(path: str | Path) -> Path
 ```
 
-Export a CHAI Applied Model Card-aligned JSON file (debug/reference).
+Export a AI model card JSON file (debug/reference).
 
 ##### to_raic_checkpoint_1()
 
@@ -735,7 +735,7 @@ results.to_json("metrics.json")
 #### FairnessMetric
 
 ```python
-from faircareai.core.config import FairnessMetric
+from faircareai import FairnessMetric
 
 FairnessMetric.DEMOGRAPHIC_PARITY   # Equal selection rates
 FairnessMetric.EQUALIZED_ODDS       # Equal TPR and FPR
@@ -748,7 +748,7 @@ FairnessMetric.INDIVIDUAL_FAIRNESS  # Similar → similar
 #### UseCaseType
 
 ```python
-from faircareai.core.config import UseCaseType
+from faircareai import UseCaseType
 
 UseCaseType.INTERVENTION_TRIGGER   # Triggers intervention
 UseCaseType.RISK_COMMUNICATION     # Communicates risk
@@ -760,7 +760,7 @@ UseCaseType.DIAGNOSIS_SUPPORT      # Diagnosis support
 #### ModelType
 
 ```python
-from faircareai.core.config import ModelType
+from faircareai import ModelType
 
 ModelType.BINARY_CLASSIFIER  # Binary classification
 ModelType.RISK_SCORE         # Risk score
@@ -774,7 +774,7 @@ ModelType.MULTICLASS         # Multiclass (future)
 Dataclass for sensitive attribute configuration.
 
 ```python
-from faircareai.core.config import SensitiveAttribute
+from faircareai import SensitiveAttribute
 
 attr = SensitiveAttribute(
     name="race",
@@ -828,7 +828,7 @@ faircareai audit DATA_PATH [OPTIONS]
 | `-t`, `--target-col` | Target/outcome column name (required) | `-t readmit_30d` |
 | `-a`, `--attributes` | Sensitive attribute (repeatable) | `-a race -a sex` |
 | `-o`, `--output` | Output file path | `-o report.html` |
-| `--format` | Output format (html, pdf, pptx, json, png, model-card, chai-model-card, chai-model-card-json, raic-checklist, repro-bundle) | `--format pdf` |
+| `--format` | Output format (html, pdf, pptx, json, png, model-card, ai-model-card, ai-model-card-json, raic-checklist, repro-bundle) | `--format pdf` |
 | `--persona` | Output persona (data_scientist, governance) | `--persona governance` |
 | `--include-optional` | Include OPTIONAL metrics (data scientist) | `--include-optional` |
 | `--seed` | Random seed for bootstrap | `--seed 42` |

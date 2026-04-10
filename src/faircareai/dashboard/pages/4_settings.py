@@ -2,6 +2,7 @@
 FairCareAI - Settings Page
 
 Configuration and preferences for the dashboard.
+All settings are stored in session state and read by other pages.
 """
 
 import streamlit as st
@@ -45,55 +46,30 @@ def render_settings_page() -> None:
             set_audience_mode(new_mode)
 
     with col2:
-        # Color theme
+        # Color theme (functional: stored in session state)
         st.selectbox(
             "Color Theme",
             options=["Default (Okabe-Ito)", "High Contrast"],
             help="Okabe-Ito palette is colorblind-safe",
-        )
-
-    # Accessibility settings
-    st.markdown("---")
-    render_semantic_heading("Accessibility", level=2, id="accessibility")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.checkbox(
-            "Reduce motion",
-            value=False,
-            help="Disable animations and transitions",
-            key="reduce_motion",
-        )
-
-        st.checkbox(
-            "High contrast mode",
-            value=False,
-            help="Increase visual contrast for better readability",
-            key="high_contrast",
-        )
-
-    with col2:
-        st.selectbox(
-            "Font size",
-            options=["Default", "Large", "Extra Large"],
-            help="Adjust text size throughout the application",
-        )
-
-        st.checkbox(
-            "Show keyboard shortcuts",
-            value=True,
-            help="Display keyboard navigation hints",
-            key="show_shortcuts",
+            key="color_theme",
         )
 
     # Analysis defaults
     st.markdown("---")
     render_semantic_heading("Analysis Defaults", level=2, id="analysis")
 
+    st.markdown(
+        "These settings are used as defaults on the Analysis page. "
+        "You can override them per-session on the Analysis sidebar."
+    )
+
     col1, col2 = st.columns(2)
 
     with col1:
+        def _sync_threshold() -> None:
+            """Clear analysis slider key so it picks up the new default."""
+            st.session_state.pop("analysis_threshold", None)
+
         st.slider(
             "Default Decision Threshold",
             0.0,
@@ -102,6 +78,7 @@ def render_settings_page() -> None:
             0.01,
             help="Default threshold for binary classification",
             key="default_threshold",
+            on_change=_sync_threshold,
         )
 
         st.slider(
@@ -110,7 +87,7 @@ def render_settings_page() -> None:
             0.3,
             0.1,
             0.01,
-            help="Threshold for flagging metric disparities",
+            help="Threshold for flagging metric disparities between groups",
             key="disparity_threshold",
         )
 
@@ -140,7 +117,7 @@ def render_settings_page() -> None:
 
     st.markdown("""
     Configure which fairness metrics to prioritize and their thresholds.
-    These settings follow CHAI guidance and can be adjusted based on clinical context.
+    These settings follow responsible AI governance standards and can be adjusted based on clinical context.
     """)
 
     col1, col2 = st.columns(2)
@@ -211,10 +188,10 @@ def render_settings_page() -> None:
 
     with col1:
         if st.button("Clear Uploaded Data", type="secondary", use_container_width=True):
-            if "uploaded_data" in st.session_state:
-                del st.session_state["uploaded_data"]
-            if "audit_result" in st.session_state:
-                del st.session_state["audit_result"]
+            for key in ["uploaded_data", "audit_result", "data_source", "data_validated",
+                        "selected_demographic_cols", "audit_threshold",
+                        "target_col", "pred_col"]:
+                st.session_state.pop(key, None)
             st.success("Uploaded data cleared")
             st.rerun()
 
@@ -232,10 +209,12 @@ def render_settings_page() -> None:
     st.markdown("---")
     render_semantic_heading("About FairCareAI", level=2, id="about")
 
-    st.markdown("""
+    from faircareai import __version__
+
+    st.markdown(f"""
     **FairCareAI** is an open-source toolkit for algorithmic fairness auditing
-    in healthcare AI systems. It implements CHAI-grounded governance principles
-    and TRIPOD+AI reporting standards.
+    in healthcare AI systems. It implements responsible AI governance principles
+    and transparent reporting standards for predictive models.
 
     ### Key Features
     - WCAG 2.1 AA compliant interface
@@ -245,13 +224,11 @@ def render_settings_page() -> None:
     - Governance sign-off workflow
 
     ### Resources
-    - [Documentation](https://faircareai.readthedocs.io)
-    - [GitHub Repository](https://github.com/faircareai/faircareai)
+    - [GitHub Repository](https://github.com/RushAI-jcr/faircare)
     - [CHAI Framework](https://www.coalitionforhealthai.org)
-    - [TRIPOD+AI Guidelines](https://www.tripod-statement.org)
 
     ### Version
-    FairCareAI v0.2.0
+    FairCareAI v{__version__}
     """)
 
     # Navigation

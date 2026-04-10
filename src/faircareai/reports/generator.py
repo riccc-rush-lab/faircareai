@@ -47,6 +47,26 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+
+def _format_timestamp(ts: str | None) -> str:
+    """Format an ISO timestamp or date string into a readable form.
+
+    Examples:
+        '2026-04-10T00:31:53-05:00' → 'April 10, 2026 at 12:31 AM'
+        '2026-04-10' → 'April 10, 2026'
+        None → 'April 10, 2026 at 12:31 AM'
+    """
+    if not ts:
+        dt = datetime.now().astimezone()
+        return dt.strftime("%B %-d, %Y at %-I:%M %p")
+    try:
+        dt = datetime.fromisoformat(ts)
+        if dt.hour == 0 and dt.minute == 0 and dt.second == 0 and dt.tzinfo is None:
+            return dt.strftime("%B %-d, %Y")
+        return dt.strftime("%B %-d, %Y at %-I:%M %p")
+    except (ValueError, TypeError):
+        return ts
+
 _PLOTLYJS_CDN_URL_FALLBACK = "https://cdn.plot.ly/plotly-2.27.0.min.js"
 _PLOTLY_CDN_SCRIPT_RE = re.compile(
     r"<script[^>]+src=[\"']https://cdn\.plot\.ly/plotly-[^\"']+\.min\.js[\"'][^>]*></script>",
@@ -124,7 +144,7 @@ def _build_audit_trail_rows(
     elif summary is not None:
         run_timestamp = summary.audit_date
 
-    run_timestamp = run_timestamp or date.today().isoformat()
+    run_timestamp = _format_timestamp(run_timestamp or date.today().isoformat())
 
     model_name = (
         results.config.model_name
@@ -497,7 +517,7 @@ def generate_pptx_deck(
         options.include_scorecard_chart = False
         options.include_overall_charts = False
         options.include_subgroup_charts = False
-        options.include_vancalster_dashboard = False
+        options.include_subgroup_dashboard = False
 
     slide_builders: dict[str, Callable[[], None]] = {
         "title": lambda: _add_title_slide(prs, summary, logo_path=options.logo_path),
@@ -512,7 +532,7 @@ def generate_pptx_deck(
                 "scorecard_chart": lambda: _add_scorecard_chart_slide(prs, results),
                 "overall_charts": lambda: _add_overall_charts_slide(prs, results),
                 "subgroup_charts": lambda: _add_subgroup_charts_slides(prs, results),
-                "vancalster_dashboard": lambda: _add_vancalster_slide(prs, results),
+                "subgroup_dashboard": lambda: _add_subgroup_slide(prs, results),
             }
         )
 
@@ -525,7 +545,7 @@ def generate_pptx_deck(
         "scorecard_chart",
         "overall_charts",
         "subgroup_charts",
-        "vancalster_dashboard",
+        "subgroup_dashboard",
     ]
 
     order = options.slide_order or default_order
@@ -547,7 +567,7 @@ def generate_pptx_deck(
             continue
         if key == "subgroup_charts" and not options.include_subgroup_charts:
             continue
-        if key == "vancalster_dashboard" and not options.include_vancalster_dashboard:
+        if key == "subgroup_dashboard" and not options.include_subgroup_dashboard:
             continue
         builder = slide_builders.get(key)
         if builder is None:
@@ -631,8 +651,10 @@ def _generate_full_report_html(results: "AuditResults") -> str:
     }
     status_color = status_colors.get(status, SEMANTIC_COLORS["fail"])
 
-    report_generated_at = datetime.now().astimezone().isoformat(timespec="seconds")
-    audit_run_at = results.run_timestamp or results.config.report_date or date.today().isoformat()
+    report_generated_at = _format_timestamp(None)
+    audit_run_at = _format_timestamp(
+        results.run_timestamp or results.config.report_date or date.today().isoformat()
+    )
 
     # Generate sections
     section1_html = _generate_executive_summary_section(results, status, status_color)
@@ -663,10 +685,10 @@ def _generate_full_report_html(results: "AuditResults") -> str:
             --warn-color: {SEMANTIC_COLORS["warn"]};
             --fail-color: {SEMANTIC_COLORS["fail"]};
             --bg-color: #ffffff;
-            --text-color: #212529;
-            --primary-color: #2c5282;
-            --secondary-color: #4a5568;
-            --border-color: #e2e8f0;
+            --text-color: #191919;
+            --primary-color: #0072B2;
+            --secondary-color: #6B6B6B;
+            --border-color: #E3E2E0;
             --section-bg: #ffffff;
         }}
 
@@ -710,12 +732,12 @@ def _generate_full_report_html(results: "AuditResults") -> str:
         }}
 
         /* Publication readable metadata */
-        .metadata {{ color: #666; font-size: 14px; }}
+        .metadata {{ color: #6B6B6B; font-size: 14px; }}
 
         .status-badge {{
             display: inline-block;
             padding: 10px 20px;
-            border-radius: 6px;
+            border-radius: 8px;
             font-weight: 700;
             font-size: 16px;
             color: white;
@@ -726,7 +748,7 @@ def _generate_full_report_html(results: "AuditResults") -> str:
         .section {{
             background: var(--section-bg);
             padding: 20px;
-            border-radius: 6px;
+            border-radius: 8px;
             margin-bottom: 18px;
             border: 1px solid var(--border-color);
             box-shadow: none;
@@ -744,8 +766,8 @@ def _generate_full_report_html(results: "AuditResults") -> str:
             min-width: 140px;
             text-align: center;
             padding: 14px;
-            border-radius: 6px;
-            background: #f9fafb;
+            border-radius: 8px;
+            background: #FAFAFA;
         }}
 
         /* Large scorecard numbers */
@@ -756,7 +778,7 @@ def _generate_full_report_html(results: "AuditResults") -> str:
 
         .scorecard-label {{
             font-size: 14px;
-            color: #666;
+            color: #6B6B6B;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }}
@@ -792,7 +814,7 @@ def _generate_full_report_html(results: "AuditResults") -> str:
 
         .flag-item {{
             padding: 12px 16px;
-            border-radius: 6px;
+            border-radius: 8px;
             margin: 8px 0;
             border-left: 4px solid;
         }}
@@ -808,7 +830,7 @@ def _generate_full_report_html(results: "AuditResults") -> str:
         }}
 
         .governance-block {{
-            background: #f7fafc;
+            background: #FAFAFA;
             border: 2px solid var(--primary-color);
             padding: 24px;
             border-radius: 8px;
@@ -822,7 +844,7 @@ def _generate_full_report_html(results: "AuditResults") -> str:
             padding: 20px;
             text-align: center;
             font-size: 14px;
-            color: #666;
+            color: #6B6B6B;
             border-top: 1px solid var(--border-color);
         }}
 
@@ -834,9 +856,9 @@ def _generate_full_report_html(results: "AuditResults") -> str:
         }}
 
         .metric-card {{
-            background: #f9fafb;
+            background: #FAFAFA;
             padding: 16px;
-            border-radius: 6px;
+            border-radius: 8px;
         }}
 
         /* Large metric values */
@@ -848,15 +870,15 @@ def _generate_full_report_html(results: "AuditResults") -> str:
 
         .metric-label {{
             font-size: 14px;
-            color: #666;
+            color: #6B6B6B;
         }}
 
         .chart-placeholder {{
             background: var(--bg-color);
             padding: 40px;
             text-align: center;
-            border-radius: 6px;
-            color: #666;
+            border-radius: 8px;
+            color: #6B6B6B;
             font-size: 16px;
         }}
 
@@ -873,8 +895,8 @@ def _generate_full_report_html(results: "AuditResults") -> str:
             border-left: 2px solid var(--border-color);
             padding: 8px 12px;
             margin-bottom: 10px;
-            font-size: 13px;
-            color: #555;
+            font-size: 14px;
+            color: #6B6B6B;
             line-height: 1.4;
             border-radius: 0;
         }}
@@ -883,30 +905,30 @@ def _generate_full_report_html(results: "AuditResults") -> str:
             border-left: 3px solid var(--primary-color);
             padding: 10px 12px;
             margin: 12px 0;
-            font-size: 13px;
-            color: #4b5563;
-            background: #f9fafb;
+            font-size: 14px;
+            color: #6B6B6B;
+            background: #FAFAFA;
             border-radius: 4px;
         }}
 
         .note-subtle {{
             border-left: 2px solid var(--border-color);
             background: transparent;
-            color: #555;
+            color: #6B6B6B;
         }}
 
         .audit-table {{
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 14px;
         }}
 
         .audit-table th {{
             width: 32%;
             text-align: left;
             padding: 8px 10px;
-            background: #f9fafb;
-            color: #555;
+            background: #FAFAFA;
+            color: #6B6B6B;
             font-weight: 600;
             border-bottom: 1px solid var(--border-color);
             word-break: break-word;
@@ -922,7 +944,7 @@ def _generate_full_report_html(results: "AuditResults") -> str:
 
         @media print {{
             body {{ background: white; }}
-            .section {{ box-shadow: none; border: 1px solid #ddd; }}
+            .section {{ box-shadow: none; border: 1px solid #E3E2E0; }}
             .container {{ max-width: 100%; }}
             .chart-grid, .figure-grid {{ page-break-inside: avoid; }}
         }}
@@ -934,7 +956,7 @@ def _generate_full_report_html(results: "AuditResults") -> str:
             <h1>FairCareAI Audit Report</h1>
             <p class="metadata">
                 <strong>Model:</strong> {results.config.model_name} v{results.config.model_version}<br>
-                <strong>Report Date:</strong> {results.config.report_date or date.today().isoformat()}<br>
+                <strong>Report Date:</strong> {_format_timestamp(results.config.report_date or date.today().isoformat())}<br>
                 <strong>Audit Run:</strong> {audit_run_at}<br>
                 <strong>Report Generated:</strong> {report_generated_at}<br>
                 <strong>Primary Fairness Metric:</strong> {results.config.primary_fairness_metric.value if results.config.primary_fairness_metric else "Not specified"}
@@ -950,15 +972,29 @@ def _generate_full_report_html(results: "AuditResults") -> str:
         {section7_html}
         {audit_trail_html}
 
+        <section class="section" style="margin-top: 40px; border-top: 2px solid #E3E2E0; padding-top: 24px;">
+            <h2>References</h2>
+            <ol style="font-size: 14px; color: #6B6B6B; line-height: 1.8;">
+                <li>Van Calster B, Collins GS, Vickers AJ, et al.
+                    Evaluation of performance measures in predictive artificial intelligence models
+                    to support medical decisions: overview and guidance.
+                    <i>Lancet Digit Health</i> 2025;7(2):e100916.
+                    DOI: <a href="https://doi.org/10.1016/j.landig.2025.100916" style="color: #0072B2;">10.1016/j.landig.2025.100916</a></li>
+                <li>Chouldechova A. Fair prediction with disparate impact:
+                    A study of bias in recidivism prediction instruments. <i>Big Data</i> 2017.</li>
+                <li>Kleinberg J, Mullainathan S, Raghavan M.
+                    Inherent trade-offs in the fair determination of risk scores. <i>ITCS</i> 2017.</li>
+                <li>Coalition for Health AI. RAIC Checkpoint 1: Model Card for
+                    Responsible AI in Clinical Practice. Version 1.0. 2024.
+                    <a href="https://www.coalitionforhealthai.org" style="color: #0072B2;">coalitionforhealthai.org</a></li>
+                <li>Collins GS, Moons KGM, Dhiman P, et al. TRIPOD+AI statement: updated guidance
+                    for reporting clinical prediction models that use regression or machine learning methods.
+                    <i>BMJ</i> 2024. DOI: <a href="https://doi.org/10.1136/bmj-2023-078378" style="color: #0072B2;">10.1136/bmj-2023-078378</a></li>
+            </ol>
+        </section>
+
         <footer class="footer">
             <p>{GOVERNANCE_DISCLAIMER_FULL}</p>
-            <p style="font-size: 14px; margin-top: 12px;">
-                <strong>Methodology:</strong> Van Calster B, Collins GS, Vickers AJ, et al.
-                Evaluation of performance measures in predictive artificial intelligence models
-                to support medical decisions: overview and guidance.
-                <i>Lancet Digit Health</i> 2025;7(2):e100916.
-                DOI: <a href="https://doi.org/10.1016/j.landig.2025.100916" target="_blank" style="color: #2c5282; text-decoration: none;">10.1016/j.landig.2025.100916</a>
-            </p>
             <p>Generated by FairCareAI on {report_generated_at}</p>
         </footer>
     </div>
@@ -1005,7 +1041,7 @@ def _generate_executive_summary_section(
         </div>
 
         <p><strong>Advisory:</strong> {advisory}</p>
-        <p style="font-size: 16px; color: #666; font-style: italic;">
+        <p style="font-size: 16px; color: #6B6B6B; font-style: italic;">
             This analysis provides data and metrics for governance committee review. Final deployment decisions are made by the health system governance team through their established review process.
         </p>
     </section>
@@ -1213,35 +1249,35 @@ def _generate_performance_section(results: "AuditResults") -> str:
 
     return f"""
     <section class="section">
-        <h2>Section 3: Overall Model Performance (TRIPOD+AI + Van Calster 2025)</h2>
+        <h2>Section 3: Overall Model Performance (Discrimination, Calibration & Clinical Utility)<sup>1</sup></h2>
 
         <!-- Summary -->
         <div class="note">
             <strong>Summary</strong>
             <p style="margin: 6px 0 0 0;">
                 The 4 gauges below provide an at-a-glance summary of model performance across discrimination, calibration, and classification domains.
-                Detailed Van Calster 2025 analysis follows.
+                Detailed performance analysis follows.
             </p>
         </div>
 
         {charts_html}
 
-        <!-- Detailed Van Calster 2025 Analysis -->
-        <h3 style="margin-top: 40px; color: #2c5282; border-bottom: 2px solid #2c5282; padding-bottom: 8px;">Detailed Analysis: Van Calster 2025 5-Domain Framework</h3>
+        <!-- Detailed Performance Analysis -->
+        <h3 style="margin-top: 40px; color: #0072B2; border-bottom: 2px solid #0072B2; padding-bottom: 8px;">Detailed Analysis: 5-Domain Performance Framework</h3>
 
         <h4>1. Discrimination: How Well Does the Model Separate Outcomes?</h4>
         <div class="metric-grid">
             <div class="metric-card">
                 <div class="metric-value">{auroc:.3f}</div>
                 <div class="metric-label">AUROC (0-1 scale) {auroc_ci}</div>
-                <div style="margin-top: 8px; font-size: 14px; color: #666;">
+                <div style="margin-top: 8px; font-size: 14px; color: #6B6B6B;">
                     <strong>{auroc_interp}</strong> (0.5=random, 1.0=perfect)
                 </div>
             </div>
             <div class="metric-card">
                 <div class="metric-value">{auprc:.3f}</div>
                 <div class="metric-label">AUPRC (Precision-Recall)</div>
-                <div style="margin-top: 8px; font-size: 14px; color: #666;">
+                <div style="margin-top: 8px; font-size: 14px; color: #6B6B6B;">
                     Area under precision-recall curve
                 </div>
             </div>
@@ -1249,7 +1285,7 @@ def _generate_performance_section(results: "AuditResults") -> str:
 
         {roc_html}
 
-        <p style="color: #666; font-size: 14px; margin: 16px 0;">
+        <p style="color: #6B6B6B; font-size: 14px; margin: 16px 0;">
             <strong>What this shows:</strong> The ROC curve visualizes how well the model ranks patients from low to high risk.
             A curve hugging the top-left corner means the model correctly identifies high-risk patients without too many false alarms.
             The diagonal line represents random guessing - our model should be well above this line.
@@ -1257,7 +1293,7 @@ def _generate_performance_section(results: "AuditResults") -> str:
 
         {prob_dist_html}
 
-        <p style="color: #666; font-size: 14px; margin: 16px 0;">
+        <p style="color: #6B6B6B; font-size: 14px; margin: 16px 0;">
             <strong>What this shows:</strong> This chart shows how risk scores differ between patients who develop the outcome (red) versus those who don't (green).
             Good models show clear separation with minimal overlap. Wide gaps indicate strong discrimination.
         </p>
@@ -1267,49 +1303,49 @@ def _generate_performance_section(results: "AuditResults") -> str:
             <div class="metric-card">
                 <div class="metric-value">{brier:.4f}</div>
                 <div class="metric-label">Brier Score (0-0.25, lower=better)</div>
-                <div style="margin-top: 8px; font-size: 14px; color: #666;">
+                <div style="margin-top: 8px; font-size: 14px; color: #6B6B6B;">
                     <strong>{brier_interp}</strong> (&lt;0.15=excellent)
                 </div>
             </div>
             <div class="metric-card">
                 <div class="metric-value">{slope:.2f}</div>
                 <div class="metric-label">Calibration Slope (ideal: 1.00)</div>
-                <div style="margin-top: 8px; font-size: 14px; color: #666;">
+                <div style="margin-top: 8px; font-size: 14px; color: #6B6B6B;">
                     <strong>{slope_interp}</strong> (0.8-1.2=good)
                 </div>
             </div>
         </div>
 
         <h4>3. Classification at Threshold = {threshold:.2f}</h4>
-        <p style="color: #666; font-size: 14px; margin-bottom: 16px;">
+        <p style="color: #6B6B6B; font-size: 14px; margin-bottom: 16px;">
             At this risk cutoff, here's what happens to patients:
         </p>
         <div class="metric-grid">
             <div class="metric-card">
                 <div class="metric-value">{cls.get("sensitivity", 0) * 100:.1f}%</div>
                 <div class="metric-label">Sensitivity (TPR)</div>
-                <div style="margin-top: 8px; font-size: 14px; color: #666;">
+                <div style="margin-top: 8px; font-size: 14px; color: #6B6B6B;">
                     % of actual cases correctly identified
                 </div>
             </div>
             <div class="metric-card">
                 <div class="metric-value">{cls.get("specificity", 0) * 100:.1f}%</div>
                 <div class="metric-label">Specificity (TNR)</div>
-                <div style="margin-top: 8px; font-size: 14px; color: #666;">
+                <div style="margin-top: 8px; font-size: 14px; color: #6B6B6B;">
                     % without condition correctly identified
                 </div>
             </div>
             <div class="metric-card">
                 <div class="metric-value">{cls.get("ppv", 0) * 100:.1f}%</div>
                 <div class="metric-label">PPV (Precision)</div>
-                <div style="margin-top: 8px; font-size: 14px; color: #666;">
+                <div style="margin-top: 8px; font-size: 14px; color: #6B6B6B;">
                     When flagged positive, % truly positive
                 </div>
             </div>
             <div class="metric-card">
                 <div class="metric-value">{cls.get("pct_flagged", 0):.1f}%</div>
                 <div class="metric-label">% Flagged High Risk</div>
-                <div style="margin-top: 8px; font-size: 14px; color: #666;">
+                <div style="margin-top: 8px; font-size: 14px; color: #6B6B6B;">
                     Proportion identified for intervention
                 </div>
             </div>
@@ -1409,7 +1445,7 @@ def _generate_subgroup_section(results: "AuditResults") -> str:
         chart_parts = []
         for attr_name, figures in all_figures.items():
             chart_parts.append(
-                f'<h3 style="margin-top: 30px; color: #2c5282;">{attr_name.replace("_", " ").title()}</h3>'
+                f'<h3 style="margin-top: 30px; color: #0072B2;">{attr_name.replace("_", " ").title()}</h3>'
             )
             chart_parts.append(
                 '<div class="subgroup-charts" style="display: flex; flex-direction: column; gap: 40px; margin-top: 20px;">'
@@ -1423,7 +1459,7 @@ def _generate_subgroup_section(results: "AuditResults") -> str:
                     )
                     explanation = CHART_EXPLANATIONS.get(title, "")
                     explanation_html = (
-                        f'<p style="color: #666; font-size: 13px; margin-top: 8px; padding: 0 20px;">{explanation}</p>'
+                        f'<p style="color: #6B6B6B; font-size: 14px; margin-top: 8px; padding: 0 20px;">{explanation}</p>'
                         if explanation
                         else ""
                     )
@@ -1443,7 +1479,7 @@ def _generate_subgroup_section(results: "AuditResults") -> str:
     <section class="section">
         <h2>Section 4: Subgroup Performance</h2>
 
-        <p style="color: #666; font-size: 16px; margin-bottom: 20px;">
+        <p style="color: #6B6B6B; font-size: 16px; margin-bottom: 20px;">
             <strong>What to look for:</strong> Performance should be similar across all demographic groups.
             Large differences in AUROC (&gt;0.05) or TPR/FPR (&gt;10 percentage points) may indicate fairness concerns.
         </p>
@@ -1454,9 +1490,9 @@ def _generate_subgroup_section(results: "AuditResults") -> str:
                     <th>Attribute</th>
                     <th>Group</th>
                     <th>Sample Size</th>
-                    <th>AUROC<br><span style="font-weight: normal; font-size: 12px;">(accuracy)</span></th>
-                    <th>TPR<br><span style="font-weight: normal; font-size: 12px;">(sensitivity)</span></th>
-                    <th>FPR<br><span style="font-weight: normal; font-size: 12px;">(false alarms)</span></th>
+                    <th>AUROC<br><span style="font-weight: normal; font-size: 14px;">(accuracy)</span></th>
+                    <th>TPR<br><span style="font-weight: normal; font-size: 14px;">(sensitivity)</span></th>
+                    <th>FPR<br><span style="font-weight: normal; font-size: 14px;">(false alarms)</span></th>
                 </tr>
             </thead>
             <tbody>
@@ -1464,7 +1500,7 @@ def _generate_subgroup_section(results: "AuditResults") -> str:
             </tbody>
         </table>
 
-        <div style="margin-top: 20px; padding: 16px; background: #f8f9fa; border-left: 4px solid #0072B2; border-radius: 4px;">
+        <div style="margin-top: 20px; padding: 16px; background: #FAFAFA; border-left: 4px solid #0072B2; border-radius: 4px;">
             <h4 style="margin-top: 0; color: #0072B2;">Interpreting These Metrics:</h4>
             <ul style="margin-bottom: 0;">
                 <li><strong>AUROC:</strong> Model's ability to rank patients (0.7+ acceptable, 0.8+ strong)</li>
@@ -1575,7 +1611,7 @@ def _generate_fairness_section(results: "AuditResults") -> str:
         def format_cell(value: float, passed: bool, is_primary: bool) -> str:
             status = "PASS" if passed else "FLAG"
             status_class = "pass" if passed else "fail"
-            highlight = ' style="background: #e8f4f8; font-weight: bold;"' if is_primary else ""
+            highlight = ' style="background: #E3F2FD; font-weight: bold;"' if is_primary else ""
             return f'<td{highlight}>{abs(value):.3f}</td><td class="{status_class}"{highlight}>{status}</td>'
 
         # Determine which metric is primary for this row
@@ -1597,11 +1633,11 @@ def _generate_fairness_section(results: "AuditResults") -> str:
         """
 
     # Primary metric badge color
-    metric_color = "#0072B2" if metric else "#666"
+    metric_color = "#0072B2" if metric else "#6B6B6B"
 
     return f"""
     <section class="section">
-        <h2>Section 5: Fairness Assessment</h2>
+        <h2>Section 5: Fairness Assessment<sup>2,3</sup></h2>
 
         <div class="note" style="border-left-color: {metric_color};">
             <strong>Primary Fairness Metric: {selected_info["name"]}</strong>
@@ -1612,7 +1648,7 @@ def _generate_fairness_section(results: "AuditResults") -> str:
         </div>
 
         <h3>All Fairness Metrics by Attribute</h3>
-        <p style="color: #666; font-size: 14px; margin-bottom: 16px;">
+        <p style="color: #6B6B6B; font-size: 14px; margin-bottom: 16px;">
             Your selected metric is <strong>highlighted in blue</strong>. Other metrics shown for completeness.
         </p>
 
@@ -1621,11 +1657,11 @@ def _generate_fairness_section(results: "AuditResults") -> str:
             <thead>
                 <tr>
                     <th>Attribute</th>
-                    <th colspan="2">Demographic Parity<br><span style="font-weight: normal; font-size: 12px;">Selection Rate Diff</span></th>
-                    <th colspan="2">Equal Opportunity<br><span style="font-weight: normal; font-size: 12px;">TPR Diff</span></th>
-                    <th colspan="2">Equalized Odds<br><span style="font-weight: normal; font-size: 12px;">Max(TPR, FPR) Diff</span></th>
-                    <th colspan="2">Predictive Parity<br><span style="font-weight: normal; font-size: 12px;">PPV Diff</span></th>
-                    <th colspan="2">Calibration<br><span style="font-weight: normal; font-size: 12px;">Cal Error Diff</span></th>
+                    <th colspan="2">Demographic Parity<br><span style="font-weight: normal; font-size: 14px;">Selection Rate Diff</span></th>
+                    <th colspan="2">Equal Opportunity<br><span style="font-weight: normal; font-size: 14px;">TPR Diff</span></th>
+                    <th colspan="2">Equalized Odds<br><span style="font-weight: normal; font-size: 14px;">Max(TPR, FPR) Diff</span></th>
+                    <th colspan="2">Predictive Parity<br><span style="font-weight: normal; font-size: 14px;">PPV Diff</span></th>
+                    <th colspan="2">Calibration<br><span style="font-weight: normal; font-size: 14px;">Cal Error Diff</span></th>
                 </tr>
             </thead>
             <tbody>
@@ -1695,7 +1731,7 @@ def _generate_governance_section(results: "AuditResults") -> str:
         <p><strong>Intended Population:</strong> {config.intended_population or "Not specified"}</p>
         <p><strong>System Status:</strong> {gov.get("status", "REVIEW")}</p>
 
-        <div class="governance-note" style="background-color: #f8f9fa; border-left: 4px solid #0072B2; padding: 16px; margin-top: 20px;">
+        <div class="governance-note" style="background-color: #FAFAFA; border-left: 4px solid #0072B2; padding: 16px; margin-top: 20px;">
             <h3>Governance Process Note</h3>
             <p>
                 This package provides essential fairness and performance data to support the
@@ -1711,7 +1747,7 @@ def _generate_governance_section(results: "AuditResults") -> str:
             </p>
         </div>
 
-        <p style="font-size: 16px; color: #666; margin-top: 24px; font-style: italic;">
+        <p style="font-size: 16px; color: #6B6B6B; margin-top: 24px; font-style: italic;">
             {GOVERNANCE_DISCLAIMER_FULL}
         </p>
     </section>
@@ -1754,8 +1790,8 @@ def _generate_report_html(
         summary.worst_disparity_value,
     )
 
-    report_generated_at = datetime.now().astimezone().isoformat(timespec="seconds")
-    audit_run_at = (
+    report_generated_at = _format_timestamp(None)
+    audit_run_at = _format_timestamp(
         (results.run_timestamp if results is not None else None)
         or summary.audit_date
         or date.today().isoformat()
@@ -1863,7 +1899,7 @@ def _generate_report_html(
         }}
 
         .metadata {{
-            color: #666;
+            color: #6B6B6B;
             font-size: 14px;
         }}
 
@@ -1900,7 +1936,7 @@ def _generate_report_html(
 
         .scorecard-label {{
             font-size: 14px;
-            color: #666;
+            color: #6B6B6B;
             text-transform: uppercase;
         }}
 
@@ -1923,15 +1959,15 @@ def _generate_report_html(
         .footer {{
             margin-top: 60px;
             padding-top: 20px;
-            border-top: 1px solid #ddd;
-            font-size: 12px;
-            color: #666;
+            border-top: 1px solid #E3E2E0;
+            font-size: 14px;
+            color: #6B6B6B;
         }}
 
         .audit-table {{
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 14px;
             margin-top: 12px;
         }}
 
@@ -1939,17 +1975,17 @@ def _generate_report_html(
             width: 32%;
             text-align: left;
             padding: 8px 10px;
-            background: #f5f5f5;
-            color: #555;
+            background: #FAFAFA;
+            color: #6B6B6B;
             font-weight: 600;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #E3E2E0;
             word-break: break-word;
             white-space: normal;
         }}
 
         .audit-table td {{
             padding: 8px 10px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #E3E2E0;
             word-break: break-word;
             white-space: normal;
         }}
@@ -1969,7 +2005,7 @@ def _generate_report_html(
             font-size: 20px;
             margin-top: 30px;
             margin-bottom: 15px;
-            color: #2c5282;
+            color: #0072B2;
         }}
     </style>
 </head>
@@ -1978,7 +2014,7 @@ def _generate_report_html(
         <h1>Equity Audit Report</h1>
         <p class="metadata">
             Model: <strong>{summary.model_name}</strong><br>
-            Audit Date: {summary.audit_date}<br>
+            Audit Date: {_format_timestamp(summary.audit_date)}<br>
             Audit Run: {audit_run_at}<br>
             Report Generated: {report_generated_at}<br>
             Samples: {summary.n_samples:,} | Groups: {summary.n_groups} | Threshold: {summary.threshold:.0%}
@@ -2002,7 +2038,7 @@ def _generate_report_html(
                 <div class="scorecard-label">Flag</div>
             </div>
         </div>
-        <p style="font-size: 16px; color: #666; margin-top: 8px;">
+        <p style="font-size: 16px; color: #6B6B6B; margin-top: 8px;">
             <em>Data provided for governance team review — final decisions made by health system governance committee</em>
         </p>
     </section>
@@ -2015,11 +2051,30 @@ def _generate_report_html(
     {charts_html}
     {audit_trail_html}
 
+    <section class="section" style="margin-top: 40px; border-top: 2px solid #E3E2E0; padding-top: 24px;">
+        <h2>References</h2>
+        <ol style="font-size: 14px; color: #6B6B6B; line-height: 1.8;">
+            <li>Van Calster B, Collins GS, Vickers AJ, et al.
+                Evaluation of performance measures in predictive artificial intelligence models
+                to support medical decisions: overview and guidance.
+                <i>Lancet Digit Health</i> 2025;7(2):e100916.
+                DOI: <a href="https://doi.org/10.1016/j.landig.2025.100916" style="color: #0072B2;">10.1016/j.landig.2025.100916</a></li>
+            <li>Chouldechova A. Fair prediction with disparate impact:
+                A study of bias in recidivism prediction instruments. <i>Big Data</i> 2017.</li>
+            <li>Kleinberg J, Mullainathan S, Raghavan M.
+                Inherent trade-offs in the fair determination of risk scores. <i>ITCS</i> 2017.</li>
+            <li>Coalition for Health AI. RAIC Checkpoint 1: Model Card for
+                Responsible AI in Clinical Practice. Version 1.0. 2024.
+                <a href="https://www.coalitionforhealthai.org" style="color: #0072B2;">coalitionforhealthai.org</a></li>
+            <li>Collins GS, Moons KGM, Dhiman P, et al. TRIPOD+AI statement: updated guidance
+                for reporting clinical prediction models that use regression or machine learning methods.
+                <i>BMJ</i> 2024. DOI: <a href="https://doi.org/10.1136/bmj-2023-078378" style="color: #0072B2;">10.1136/bmj-2023-078378</a></li>
+        </ol>
+    </section>
+
     <footer class="footer">
-        <p>
-            Generated by FairCareAI |
-            Report generated on {report_generated_at}
-        </p>
+        <p>{GOVERNANCE_DISCLAIMER_FULL}</p>
+        <p>Generated by FairCareAI on {report_generated_at}</p>
     </footer>
 </body>
 </html>"""
@@ -2037,13 +2092,13 @@ def _get_print_css() -> str:
         @top-right {
             content: "FairCareAI Audit Report";
             font-size: 12pt;
-            color: #666;
+            color: #6B6B6B;
         }
 
         @bottom-center {
             content: counter(page) " of " counter(pages);
             font-size: 12pt;
-            color: #666;
+            color: #6B6B6B;
         }
     }
 
@@ -2072,32 +2127,36 @@ def _add_title_slide(prs: Any, summary: AuditSummary, logo_path: str | Path | No
     """Add title slide to presentation with publication-ready typography."""
     from contextlib import suppress
 
+    from pptx.dml.color import RGBColor
     from pptx.util import Inches, Pt
 
     slide_layout = prs.slide_layouts[6]  # Blank layout
     slide = prs.slides.add_slide(slide_layout)
 
-    # Title - large, clear (44pt from TYPOGRAPHY)
+    # Title — Publication navy
     title_box = slide.shapes.add_textbox(Inches(0.5), Inches(2.5), Inches(12), Inches(1))
     tf = title_box.text_frame
     p = tf.paragraphs[0]
     p.text = "Equity Audit Report"
-    p.font.size = Pt(TYPOGRAPHY["ppt_title_size"])  # 44pt
+    p.font.size = Pt(TYPOGRAPHY["ppt_title_size"])
     p.font.bold = True
+    p.font.color.rgb = RGBColor(0x30, 0x3C, 0x6C)  # Publication navy
 
-    # Subtitle - readable (32pt)
+    # Subtitle — Publication dark blue
     subtitle_box = slide.shapes.add_textbox(Inches(0.5), Inches(3.7), Inches(12), Inches(0.8))
     tf = subtitle_box.text_frame
     p = tf.paragraphs[0]
     p.text = summary.model_name
-    p.font.size = Pt(TYPOGRAPHY["ppt_subtitle_size"])  # 32pt
+    p.font.size = Pt(TYPOGRAPHY["ppt_subtitle_size"])
+    p.font.color.rgb = RGBColor(0x3C, 0x5A, 0x99)  # Publication dark blue
 
-    # Date - readable body text (24pt)
+    # Date — Publication body text
     date_box = slide.shapes.add_textbox(Inches(0.5), Inches(4.5), Inches(12), Inches(0.5))
     tf = date_box.text_frame
     p = tf.paragraphs[0]
     p.text = f"Audit Date: {summary.audit_date}"
-    p.font.size = Pt(TYPOGRAPHY["ppt_body_size"])  # 24pt
+    p.font.size = Pt(TYPOGRAPHY["ppt_body_size"])
+    p.font.color.rgb = RGBColor(0x21, 0x21, 0x21)  # Publication text
 
     if logo_path:
         with suppress(Exception):
@@ -2116,6 +2175,7 @@ def _add_logo(slide: Any, logo_path: str | Path) -> None:
 
 def _add_footer(slide: Any, footer_text: str) -> None:
     """Add a small footer to a slide."""
+    from pptx.dml.color import RGBColor
     from pptx.enum.text import PP_ALIGN
     from pptx.util import Inches, Pt
 
@@ -2124,11 +2184,13 @@ def _add_footer(slide: Any, footer_text: str) -> None:
     p = tf.paragraphs[0]
     p.text = footer_text
     p.font.size = Pt(10)
+    p.font.color.rgb = RGBColor(0x54, 0x6E, 0x7A)  # Publication gray
     p.alignment = PP_ALIGN.RIGHT
 
 
 def _add_slide_title(slide: Any, title: str) -> None:
-    """Add a slide title with consistent typography."""
+    """Add a slide title with Publication-styled typography."""
+    from pptx.dml.color import RGBColor
     from pptx.util import Inches, Pt
 
     title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.3), Inches(12), Inches(0.6))
@@ -2137,6 +2199,7 @@ def _add_slide_title(slide: Any, title: str) -> None:
     p.text = title
     p.font.size = Pt(TYPOGRAPHY["headline_size"])
     p.font.bold = True
+    p.font.color.rgb = RGBColor(0x30, 0x3C, 0x6C)  # Publication navy
 
 
 def _add_summary_slide(prs: Any, summary: AuditSummary) -> None:
@@ -2147,34 +2210,35 @@ def _add_summary_slide(prs: Any, summary: AuditSummary) -> None:
     slide_layout = prs.slide_layouts[6]
     slide = prs.slides.add_slide(slide_layout)
 
-    # Title - publication style (36pt from subheading)
+    # Title — Publication navy
     title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(0.7))
     tf = title_box.text_frame
     p = tf.paragraphs[0]
     p.text = "Executive Summary"
-    p.font.size = Pt(TYPOGRAPHY["headline_size"])  # 36pt
+    p.font.size = Pt(TYPOGRAPHY["headline_size"])
     p.font.bold = True
+    p.font.color.rgb = RGBColor(0x30, 0x3C, 0x6C)  # Publication navy
 
-    # Status based on threshold results
+    # Status based on threshold results — Publication palette
     if summary.fail_count > 0:
         status = "Outside Threshold"
-        color = RGBColor(0xD5, 0x5E, 0x00)  # Vermillion
+        color = RGBColor(0xBE, 0x1E, 0x2D)  # Publication red
     elif summary.warn_count > 0:
         status = "Near Threshold"
-        color = RGBColor(0xF0, 0xE4, 0x42)  # Yellow
+        color = RGBColor(0xC4, 0x90, 0x00)  # Publication amber
     else:
         status = "Within Threshold"
-        color = RGBColor(0x00, 0x9E, 0x73)  # Green
+        color = RGBColor(0x2E, 0x7D, 0x32)  # Publication green
 
     status_box = slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(4), Inches(0.7))
     tf = status_box.text_frame
     p = tf.paragraphs[0]
     p.text = status
-    p.font.size = Pt(TYPOGRAPHY["ppt_subtitle_size"])  # 32pt - prominent status
+    p.font.size = Pt(TYPOGRAPHY["ppt_subtitle_size"])
     p.font.bold = True
     p.font.color.rgb = color
 
-    # Metrics - using advisory terminology (large readable)
+    # Metrics — Publication body text
     metrics_text = (
         f"PASS: {summary.pass_count}    REVIEW: {summary.warn_count}    FLAG: {summary.fail_count}"
     )
@@ -2182,32 +2246,36 @@ def _add_summary_slide(prs: Any, summary: AuditSummary) -> None:
     tf = metrics_box.text_frame
     p = tf.paragraphs[0]
     p.text = metrics_text
-    p.font.size = Pt(TYPOGRAPHY["ppt_body_size"])  # 24pt
+    p.font.size = Pt(TYPOGRAPHY["ppt_body_size"])
+    p.font.color.rgb = RGBColor(0x21, 0x21, 0x21)  # Publication text
 
-    # Sample info - readable label size
+    # Sample info
     info_box = slide.shapes.add_textbox(Inches(0.5), Inches(3.5), Inches(12), Inches(0.5))
     tf = info_box.text_frame
     p = tf.paragraphs[0]
     p.text = f"N = {summary.n_samples:,} | {summary.n_groups} demographic groups | Threshold: {summary.threshold:.0%}"
-    p.font.size = Pt(TYPOGRAPHY["ppt_label_size"])  # 20pt
+    p.font.size = Pt(TYPOGRAPHY["ppt_label_size"])
+    p.font.color.rgb = RGBColor(0x54, 0x6E, 0x7A)  # Publication gray
 
 
 def _add_findings_slide(prs: Any, summary: AuditSummary) -> None:
     """Add key findings slide with publication-ready typography."""
+    from pptx.dml.color import RGBColor
     from pptx.util import Inches, Pt
 
     slide_layout = prs.slide_layouts[6]
     slide = prs.slides.add_slide(slide_layout)
 
-    # Title - publication style (36pt)
+    # Title — Publication navy
     title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(0.7))
     tf = title_box.text_frame
     p = tf.paragraphs[0]
     p.text = "Key Finding"
-    p.font.size = Pt(TYPOGRAPHY["headline_size"])  # 36pt
+    p.font.size = Pt(TYPOGRAPHY["headline_size"])
     p.font.bold = True
+    p.font.color.rgb = RGBColor(0x30, 0x3C, 0x6C)  # Publication navy
 
-    # Finding text - large readable body text
+    # Finding text — Publication body text
     disparity_pct = abs(summary.worst_disparity_value) * 100
     finding_text = (
         f"The largest disparity was found in {summary.worst_disparity_metric} "
@@ -2220,32 +2288,38 @@ def _add_findings_slide(prs: Any, summary: AuditSummary) -> None:
     tf.word_wrap = True
     p = tf.paragraphs[0]
     p.text = finding_text
-    p.font.size = Pt(TYPOGRAPHY["ppt_body_size"])  # 24pt - readable
+    p.font.size = Pt(TYPOGRAPHY["ppt_body_size"])
+    p.font.color.rgb = RGBColor(0x21, 0x21, 0x21)  # Publication text
 
 
 def _add_recommendations_slide(prs: Any, summary: AuditSummary) -> None:
     """Add methodology slide with publication-ready typography."""
+    from pptx.dml.color import RGBColor
     from pptx.util import Inches, Pt
 
     slide_layout = prs.slide_layouts[6]
     slide = prs.slides.add_slide(slide_layout)
 
-    # Title - publication style (36pt)
+    # Title — Publication navy
     title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(0.7))
     tf = title_box.text_frame
     p = tf.paragraphs[0]
     p.text = "Methodology"
-    p.font.size = Pt(TYPOGRAPHY["headline_size"])  # 36pt
+    p.font.size = Pt(TYPOGRAPHY["headline_size"])
     p.font.bold = True
+    p.font.color.rgb = RGBColor(0x30, 0x3C, 0x6C)  # Publication navy
 
-    # Methodology information - readable body text
+    # Methodology information — Publication body text
     methodology_text = [
         "Analysis Methodology",
         "",
-        "Metrics computed per Van Calster B, Collins GS, Vickers AJ, et al.",
+        "[1] Van Calster B, Collins GS, Vickers AJ, et al.",
         '"Evaluation of performance measures in predictive artificial',
         'intelligence models to support medical decisions."',
-        "Lancet Digit Health 2025.",
+        "Lancet Digit Health 2025. DOI: 10.1016/j.landig.2025.100916",
+        "",
+        "[2] Coalition for Health AI. RAIC Checkpoint 1: Model Card for",
+        "Responsible AI in Clinical Practice. Version 1.0. 2024.",
         "",
         "Results Summary:",
         f"  - Within threshold: {summary.pass_count} metrics",
@@ -2266,7 +2340,8 @@ def _add_recommendations_slide(prs: Any, summary: AuditSummary) -> None:
         else:
             p = tf.add_paragraph()
         p.text = line
-        p.font.size = Pt(TYPOGRAPHY["ppt_label_size"])  # 20pt - readable
+        p.font.size = Pt(TYPOGRAPHY["ppt_label_size"])
+        p.font.color.rgb = RGBColor(0x21, 0x21, 0x21)  # Publication text
         p.space_after = Pt(8)
 
 
@@ -2305,7 +2380,7 @@ def _add_subgroup_charts_slides(prs: Any, results: "AuditResults") -> None:
             _add_single_image_slide(prs, f"Fairness by {attr}", figs[0])
 
 
-def _add_vancalster_slide(prs: Any, results: "AuditResults") -> None:
+def _add_subgroup_slide(prs: Any, results: "AuditResults") -> None:
     """Add Van Calster dashboard slide if possible."""
     if getattr(results, "_audit", None) is None:
         return
@@ -2313,17 +2388,17 @@ def _add_vancalster_slide(prs: Any, results: "AuditResults") -> None:
     if not getattr(audit, "sensitive_attributes", None):
         return
     try:
-        from faircareai.metrics.vancalster import compute_vancalster_metrics
-        from faircareai.visualization.vancalster_plots import create_vancalster_dashboard
+        from faircareai.metrics.subgroup_performance import compute_subgroup_metrics_suite
+        from faircareai.visualization.subgroup_plots import create_subgroup_dashboard
 
-        vancalster = compute_vancalster_metrics(
+        subgroup_metrics = compute_subgroup_metrics_suite(
             df=audit.df,
             y_prob_col=audit.pred_col,
             y_true_col=audit.target_col,
             group_col=audit.sensitive_attributes[0].column,
         )
-        fig = create_vancalster_dashboard(vancalster)
-        _add_single_image_slide(prs, "Van Calster Dashboard", fig)
+        fig = create_subgroup_dashboard(subgroup_metrics)
+        _add_single_image_slide(prs, "Performance Dashboard", fig)
     except Exception:
         return
 
@@ -2525,8 +2600,10 @@ def _generate_governance_html(results: "AuditResults") -> str:
         "CONDITIONAL": "Issues Near Threshold",
         "REVIEW": "Issues Exceeded Threshold",
     }
-    report_generated_at = datetime.now().astimezone().isoformat(timespec="seconds")
-    audit_run_at = results.run_timestamp or results.config.report_date or date.today().isoformat()
+    report_generated_at = _format_timestamp(None)
+    audit_run_at = _format_timestamp(
+        results.run_timestamp or results.config.report_date or date.today().isoformat()
+    )
 
     # Generate interactive figures (work in both HTML and PDF via Playwright)
     try:
@@ -2634,8 +2711,8 @@ def _generate_governance_html(results: "AuditResults") -> str:
             --warn-color: {SEMANTIC_COLORS["warn"]};
             --fail-color: {SEMANTIC_COLORS["fail"]};
             --bg-color: #ffffff;
-            --text-color: #212529;
-            --primary-color: #2c5282;
+            --text-color: #191919;
+            --primary-color: #0072B2;
         }}
 
         * {{ box-sizing: border-box; }}
@@ -2667,7 +2744,7 @@ def _generate_governance_html(results: "AuditResults") -> str:
             margin-bottom: 30px;
         }}
 
-        .metadata {{ color: #666; font-size: 14px; margin-top: 8px; }}
+        .metadata {{ color: #6B6B6B; font-size: 14px; margin-top: 8px; }}
 
         .status-badge {{
             display: inline-block;
@@ -2691,7 +2768,7 @@ def _generate_governance_html(results: "AuditResults") -> str:
             text-align: center;
             padding: 20px 30px;
             border-radius: 8px;
-            background: #f8f9fa;
+            background: #FAFAFA;
             min-width: 120px;
         }}
 
@@ -2702,7 +2779,7 @@ def _generate_governance_html(results: "AuditResults") -> str:
 
         .scorecard-label {{
             font-size: 14px;
-            color: #666;
+            color: #6B6B6B;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }}
@@ -2717,7 +2794,7 @@ def _generate_governance_html(results: "AuditResults") -> str:
         }}
 
         .findings-box {{
-            background: #f8f9fa;
+            background: #FAFAFA;
             padding: 24px;
             border-radius: 8px;
             border-left: 4px solid var(--primary-color);
@@ -2727,7 +2804,7 @@ def _generate_governance_html(results: "AuditResults") -> str:
         .finding-item {{
             margin: 12px 0;
             padding: 8px 0;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid #E3E2E0;
         }}
 
         .finding-item:last-child {{
@@ -2742,7 +2819,7 @@ def _generate_governance_html(results: "AuditResults") -> str:
         }}
 
         .figure-container {{
-            background: #f8f9fa;
+            background: #FAFAFA;
             padding: 16px;
             border-radius: 8px;
             text-align: center;
@@ -2756,15 +2833,15 @@ def _generate_governance_html(results: "AuditResults") -> str:
         }}
 
         .chart-placeholder {{
-            background: #f0f0f0;
+            background: #FAFAFA;
             padding: 60px 20px;
             text-align: center;
             border-radius: 8px;
-            color: #666;
+            color: #6B6B6B;
         }}
 
         .governance-block {{
-            background: #f7fafc;
+            background: #FAFAFA;
             border: 2px solid var(--primary-color);
             padding: 24px;
             border-radius: 8px;
@@ -2778,14 +2855,14 @@ def _generate_governance_html(results: "AuditResults") -> str:
             padding: 20px;
             text-align: center;
             font-size: 14px;
-            color: #666;
-            border-top: 1px solid #e2e8f0;
+            color: #6B6B6B;
+            border-top: 1px solid #E3E2E0;
         }}
 
         .audit-table {{
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 14px;
             margin-top: 12px;
         }}
 
@@ -2793,28 +2870,28 @@ def _generate_governance_html(results: "AuditResults") -> str:
             width: 32%;
             text-align: left;
             padding: 8px 10px;
-            background: #f5f5f5;
-            color: #555;
+            background: #FAFAFA;
+            color: #6B6B6B;
             font-weight: 600;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid #E3E2E0;
             word-break: break-word;
             white-space: normal;
         }}
 
         .audit-table td {{
             padding: 8px 10px;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid #E3E2E0;
             word-break: break-word;
             white-space: normal;
         }}
 
         .disclaimer {{
             font-size: 14px;
-            color: #666;
+            color: #6B6B6B;
             font-style: italic;
-            background: #fffdf0;
+            background: #FFFDE7;
             padding: 16px;
-            border-radius: 6px;
+            border-radius: 8px;
             margin-top: 20px;
         }}
 
@@ -2849,8 +2926,8 @@ def _generate_governance_html(results: "AuditResults") -> str:
 
         /* Callout boxes for key statistics */
         .callout-box {{
-            background: #fff3cd;
-            border-left: 6px solid #ffc107;
+            background: #FFFDE7;
+            border-left: 6px solid #C9B900;
             padding: 24px;
             margin: 30px 0;
             border-radius: 4px;
@@ -2860,19 +2937,19 @@ def _generate_governance_html(results: "AuditResults") -> str:
         .callout-number {{
             font-size: 40px;
             font-weight: bold;
-            color: #856404;
+            color: #6B6B6B;
             margin-bottom: 8px;
         }}
 
         .callout-text {{
             font-size: 18px;
-            color: #856404;
+            color: #6B6B6B;
             margin-bottom: 12px;
         }}
 
         .callout-detail {{
             font-size: 14px;
-            color: #666;
+            color: #6B6B6B;
         }}
 
         /* Narrative section headlines */
@@ -2898,19 +2975,19 @@ def _generate_governance_html(results: "AuditResults") -> str:
     <div class="container">
         <header class="header">
             <h1>Model Fairness Assessment</h1>
-            <p style="font-size: 20px; color: #666;">Governance Committee Report</p>
+            <p style="font-size: 20px; color: #6B6B6B;">Governance Committee Report</p>
             <p class="metadata">
                 <strong>{results.config.model_name}</strong> v{results.config.model_version}<br>
-                Report Date: {results.config.report_date or date.today().isoformat()}<br>
+                Report Date: {_format_timestamp(results.config.report_date or date.today().isoformat())}<br>
                 Audit Run: {audit_run_at}<br>
                 Report Generated: {report_generated_at}
             </p>
         </header>
 
         <!-- Information Banner -->
-        <div style="background: #e7f3ff; border: 2px solid #0066cc; padding: 16px; border-radius: 8px; margin-bottom: 30px; text-align: center;">
-            <strong style="font-size: 18px; color: #004080;">ℹ️ GOVERNANCE REVIEW MATERIALS</strong>
-            <p style="margin: 8px 0 0 0; color: #004080;">
+        <div style="background: #E3F2FD; border: 2px solid #0072B2; padding: 16px; border-radius: 8px; margin-bottom: 30px; text-align: center;">
+            <strong style="font-size: 18px; color: #191919;">ℹ️ GOVERNANCE REVIEW MATERIALS</strong>
+            <p style="margin: 8px 0 0 0; color: #191919;">
                 This report provides statistical analysis and performance metrics for governance committee review.<br>
                 Final deployment decisions are made by the health system governance team.
             </p>
@@ -2955,7 +3032,7 @@ def _generate_governance_html(results: "AuditResults") -> str:
             </div>
 
             <p class="disclaimer">
-                This analysis follows the CHAI RAIC framework to provide performance and fairness metrics.
+                This analysis provides performance and fairness metrics following responsible AI governance standards.
                 The governance team will review these findings and make final deployment decisions through their established process.
             </p>
         </section>
@@ -2964,14 +3041,14 @@ def _generate_governance_html(results: "AuditResults") -> str:
         <section class="section">
             <h2 class="narrative-headline">1. The Bottom Line: How Does the Model Perform?</h2>
 
-            <div style="background: #f0f7ff; padding: 24px; margin: 20px 0; border-radius: 8px;">
-                <p style="font-size: 18px; color: #333; margin: 0;">
+            <div style="background: #E3F2FD; padding: 24px; margin: 20px 0; border-radius: 8px;">
+                <p style="font-size: 18px; color: #191919; margin: 0;">
                     <strong>In plain language:</strong> The model correctly ranks patients {auroc_value:.0%} of the time,
                     predicts risks accurately, and shows {hero_status.lower()}.
                 </p>
             </div>
 
-            <p style="color: #666; font-size: 14px; margin-bottom: 16px;">
+            <p style="color: #6B6B6B; font-size: 14px; margin-bottom: 16px;">
                 These 4 metrics tell the complete story - each gauge shows performance against established thresholds:
             </p>
             {overall_figures_html}
@@ -2982,13 +3059,13 @@ def _generate_governance_html(results: "AuditResults") -> str:
             <h2 class="narrative-headline">2. Where Do Disparities Exist?</h2>
 
             <!-- Primary Fairness Metric Box -->
-            <div style="background: #e8f4f8; border: 2px solid #0072B2; padding: 20px; margin-bottom: 24px; border-radius: 8px;">
+            <div style="background: #E3F2FD; border: 2px solid #0072B2; padding: 20px; margin-bottom: 24px; border-radius: 8px;">
                 <h3 style="margin-top: 0; color: #0072B2; font-size: 18px;">Selected Fairness Metric: {metric_name}</h3>
-                <p style="margin: 8px 0; color: #333;"><strong>Definition:</strong> {metric_desc}</p>
-                <p style="margin: 8px 0 0 0; color: #666; font-size: 14px;"><strong>Justification:</strong> {metric_justification}</p>
+                <p style="margin: 8px 0; color: #191919;"><strong>Definition:</strong> {metric_desc}</p>
+                <p style="margin: 8px 0 0 0; color: #6B6B6B; font-size: 14px;"><strong>Justification:</strong> {metric_justification}</p>
             </div>
 
-            <p style="color: #666; font-size: 16px; margin-bottom: 20px;">
+            <p style="color: #6B6B6B; font-size: 16px; margin-bottom: 20px;">
                 Performance varies across demographic groups. Charts corresponding to your selected metric are
                 <span style="background: rgba(0, 114, 178, 0.1); padding: 2px 6px; border-radius: 3px;">highlighted in blue</span>.
             </p>
@@ -3004,7 +3081,7 @@ def _generate_governance_html(results: "AuditResults") -> str:
 
             {subgroup_figures_html}
 
-            <p style="color: #666; font-size: 14px; margin-top: 20px;">
+            <p style="color: #6B6B6B; font-size: 14px; margin-top: 20px;">
                 Bar charts show performance for each demographic group.
                 Red bars indicate groups below threshold requiring attention.
             </p>
@@ -3018,7 +3095,7 @@ def _generate_governance_html(results: "AuditResults") -> str:
             <p><strong>Intended Use:</strong> {results.config.intended_use or "Not specified"}</p>
             <p><strong>Intended Population:</strong> {results.config.intended_population or "Not specified"}</p>
 
-            <div class="governance-note" style="background-color: #f8f9fa; border-left: 4px solid #0072B2; padding: 16px; margin-top: 20px;">
+            <div class="governance-note" style="background-color: #FAFAFA; border-left: 4px solid #0072B2; padding: 16px; margin-top: 20px;">
                 <h3>Governance Process Note</h3>
                 <p>
                     This package provides essential fairness and performance data to support the
@@ -3037,15 +3114,29 @@ def _generate_governance_html(results: "AuditResults") -> str:
 
         {audit_trail_html}
 
+        <section class="section" style="margin-top: 40px; border-top: 2px solid #E3E2E0; padding-top: 24px;">
+            <h2>References</h2>
+            <ol style="font-size: 14px; color: #6B6B6B; line-height: 1.8;">
+                <li>Van Calster B, Collins GS, Vickers AJ, et al.
+                    Evaluation of performance measures in predictive artificial intelligence models
+                    to support medical decisions: overview and guidance.
+                    <i>Lancet Digit Health</i> 2025;7(2):e100916.
+                    DOI: <a href="https://doi.org/10.1016/j.landig.2025.100916" style="color: #0072B2;">10.1016/j.landig.2025.100916</a></li>
+                <li>Chouldechova A. Fair prediction with disparate impact:
+                    A study of bias in recidivism prediction instruments. <i>Big Data</i> 2017.</li>
+                <li>Kleinberg J, Mullainathan S, Raghavan M.
+                    Inherent trade-offs in the fair determination of risk scores. <i>ITCS</i> 2017.</li>
+                <li>Coalition for Health AI. RAIC Checkpoint 1: Model Card for
+                    Responsible AI in Clinical Practice. Version 1.0. 2024.
+                    <a href="https://www.coalitionforhealthai.org" style="color: #0072B2;">coalitionforhealthai.org</a></li>
+                <li>Collins GS, Moons KGM, Dhiman P, et al. TRIPOD+AI statement: updated guidance
+                    for reporting clinical prediction models that use regression or machine learning methods.
+                    <i>BMJ</i> 2024. DOI: <a href="https://doi.org/10.1136/bmj-2023-078378" style="color: #0072B2;">10.1136/bmj-2023-078378</a></li>
+            </ol>
+        </section>
+
         <footer class="footer">
             <p>{GOVERNANCE_DISCLAIMER_FULL}</p>
-            <p style="font-size: 14px; margin-top: 12px;">
-                <strong>Methodology:</strong> Van Calster B, Collins GS, Vickers AJ, et al.
-                Evaluation of performance measures in predictive artificial intelligence models
-                to support medical decisions: overview and guidance.
-                <i>Lancet Digit Health</i> 2025;7(2):e100916.
-                DOI: <a href="https://doi.org/10.1016/j.landig.2025.100916" target="_blank" style="color: #2c5282; text-decoration: none;">10.1016/j.landig.2025.100916</a>
-            </p>
             <p>Generated by FairCareAI on {report_generated_at}</p>
         </footer>
     </div>
@@ -3253,13 +3344,13 @@ def _get_governance_print_css() -> str:
         @top-right {
             content: "Governance Report";
             font-size: 12pt;
-            color: #666;
+            color: #6B6B6B;
         }
 
         @bottom-center {
             content: counter(page) " of " counter(pages);
             font-size: 12pt;
-            color: #666;
+            color: #6B6B6B;
         }
     }
 

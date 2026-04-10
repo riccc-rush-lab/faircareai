@@ -67,7 +67,7 @@ NET_BENEFIT_THRESHOLDS_DEFAULT = np.linspace(0.01, 0.99, 99)
 AUROC_DIFF_CLINICALLY_MEANINGFUL = 0.05  # Per Van Calster guidance
 
 
-def compute_vancalster_metrics(
+def compute_subgroup_metrics_suite(
     df: pl.DataFrame,
     y_prob_col: str,
     y_true_col: str,
@@ -109,7 +109,7 @@ def compute_vancalster_metrics(
         - citation: Van Calster et al. citation
 
     Example:
-        >>> results = compute_vancalster_metrics(
+        >>> results = compute_subgroup_metrics_suite(
         ...     df, "risk_score", "outcome", group_col="race"
         ... )
         >>> print(results["overall"]["auroc"])
@@ -133,7 +133,7 @@ def compute_vancalster_metrics(
     y_prob = df[y_prob_col].to_numpy()
 
     # === OVERALL METRICS ===
-    results["overall"] = _compute_vancalster_single(
+    results["overall"] = _compute_single_group(
         y_true=y_true,
         y_prob=y_prob,
         threshold=threshold,
@@ -164,7 +164,7 @@ def compute_vancalster_metrics(
             y_true_g = group_df[y_true_col].to_numpy()
             y_prob_g = group_df[y_prob_col].to_numpy()
 
-            group_metrics = _compute_vancalster_single(
+            group_metrics = _compute_single_group(
                 y_true=y_true_g,
                 y_prob=y_prob_g,
                 threshold=threshold,
@@ -178,17 +178,17 @@ def compute_vancalster_metrics(
             results["by_subgroup"][str(group)] = group_metrics
 
         # Compute disparities vs reference
-        results["disparities"] = _compute_vancalster_disparities(
+        results["disparities"] = _compute_subgroup_disparities(
             results["by_subgroup"], str(reference), threshold
         )
 
         # Clinical interpretation
-        results["interpretation"] = _interpret_vancalster_results(results)
+        results["interpretation"] = _interpret_subgroup_results(results)
 
     return results
 
 
-def _compute_vancalster_single(
+def _compute_single_group(
     y_true: np.ndarray,
     y_prob: np.ndarray,
     threshold: float,
@@ -626,7 +626,7 @@ def _bootstrap_metric(
     return samples
 
 
-def _compute_vancalster_disparities(
+def _compute_subgroup_disparities(
     subgroup_results: dict[str, Any],
     reference: str,
     threshold: float,
@@ -776,7 +776,7 @@ def _interpret_net_benefit(nb_result: dict, threshold: float) -> str:
     return "; ".join(interpretations) if interpretations else "Clinical utility assessment complete"
 
 
-def _interpret_vancalster_results(results: dict) -> dict[str, Any]:
+def _interpret_subgroup_results(results: dict) -> dict[str, Any]:
     """Compute summary of Van Calster metric disparities.
 
     Presents findings objectively per Van Calster et al. (2025) methodology.

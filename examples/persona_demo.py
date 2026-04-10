@@ -19,8 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from rich.console import Console
 from rich.panel import Panel
 
-from faircareai import FairCareAudit, FairnessConfig
-from faircareai.core.config import FairnessMetric, UseCaseType
+from faircareai import FairCareAudit, FairnessConfig, FairnessMetric, UseCaseType
 from faircareai.data.synthetic import generate_icu_mortality_data
 
 
@@ -52,7 +51,7 @@ def main():
     )
 
     # Configure sensitive attributes
-    audit.accept_suggested_attributes([1, 2])  # race, insurance
+    audit.accept_suggested_attributes([0, 1])  # race, insurance
 
     audit.config = FairnessConfig(
         model_name="Readmission Risk v2.0",

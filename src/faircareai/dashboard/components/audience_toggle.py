@@ -33,93 +33,29 @@ def set_audience_mode(mode: str) -> None:
 
 
 def render_audience_toggle() -> str:
-    """Render audience mode toggle in Streamlit.
+    """Render audience mode toggle using a horizontal radio.
+
+    Uses st.radio with key="audience_mode" so the widget reads/writes
+    the canonical session state key directly. This avoids desync between
+    the widget state and the mode used by other components, and handles
+    state changes natively without st.rerun().
 
     Returns:
         Current audience mode.
     """
-    current = get_audience_mode()
+    # Ensure the session state key exists before the widget renders,
+    # so the radio picks up the correct initial value.
+    if "audience_mode" not in st.session_state:
+        st.session_state["audience_mode"] = "governance"
 
-    col1, col2 = st.columns(2)
-
-    with col1:
-        if st.button(
-            "Governance View",
-            type="primary" if current == "governance" else "secondary",
-            use_container_width=True,
-            help="Plain-language explanations for clinical stakeholders",
-        ):
-            set_audience_mode("governance")
-            st.rerun()
-
-    with col2:
-        if st.button(
-            "Technical View",
-            type="primary" if current == "data_scientist" else "secondary",
-            use_container_width=True,
-            help="Detailed statistical information for data scientists",
-        ):
-            set_audience_mode("data_scientist")
-            st.rerun()
-
-    return get_audience_mode()
-
-
-def render_audience_toggle_pills() -> str:
-    """Render audience toggle as segmented pills.
-
-    Returns:
-        Current audience mode.
-    """
-    current = get_audience_mode()
-
-    # CSS for pill-style toggle
-    st.markdown(
-        """
-        <style>
-        .audience-pills {
-            display: flex;
-            gap: 0;
-            margin: 16px 0;
-            border: 1px solid #E0E0E0;
-            border-radius: 24px;
-            overflow: hidden;
-            width: fit-content;
-        }
-        .audience-pill {
-            padding: 8px 20px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            border: none;
-            background: #FFFFFF;
-            color: #666666;
-            transition: all 0.2s ease;
-        }
-        .audience-pill:hover {
-            background: #F5F5F5;
-        }
-        .audience-pill.active {
-            background: #0072B2;
-            color: #FFFFFF;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Use radio for actual selection
     mode = st.radio(
-        "Audience Mode",
+        "View Mode",
         options=["governance", "data_scientist"],
-        format_func=lambda x: "Governance" if x == "governance" else "Technical",
+        format_func=lambda x: "Governance Committee" if x == "governance" else "Data Scientist",
         horizontal=True,
-        label_visibility="collapsed",
-        key="audience_toggle_radio",
+        help="Switch between plain-language and technical detail levels",
+        key="audience_mode",
     )
-
-    if mode != current:
-        set_audience_mode(mode)
 
     return mode
 
@@ -232,9 +168,9 @@ def get_section_content(
     sections = {
         "overall_performance": {
             "data_scientist": {
-                "title": "Overall Model Performance (TRIPOD+AI Metrics)",
+                "title": "Overall Model Performance (Discrimination, Calibration & Classification)",
                 "description": (
-                    "Comprehensive performance evaluation following TRIPOD+AI guidelines. "
+                    "Comprehensive performance evaluation covering discrimination, calibration, and classification metrics. "
                     "Includes discrimination (AUROC, AUPRC), calibration (Brier score, slope), "
                     "and classification metrics at the specified threshold."
                 ),

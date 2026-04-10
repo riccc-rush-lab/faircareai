@@ -364,7 +364,7 @@ def render_glossary_tooltip(
         return f"""
         <div style="max-width: 400px;">
             <strong>{info.get("full_name", info["name"])}</strong>
-            <p style="margin: 8px 0; font-size: 13px; color: #333;">
+            <p style="margin: 8px 0; font-size: 14px; color: #191919;">
                 {info["explanation"]}
             </p>
         </div>
@@ -376,11 +376,11 @@ def render_glossary_tooltip(
         return f"""
         <div style="max-width: 400px;">
             <strong>{info["name"]}</strong>
-            <p style="margin: 8px 0; font-size: 14px; color: #333;">
+            <p style="margin: 8px 0; font-size: 14px; color: #191919;">
                 {info["explanation"]}
             </p>
-            {f'<p style="font-size: 13px; color: #666; font-style: italic;">Example: {example}</p>' if example else ""}
-            {f'<p style="font-size: 13px; color: #0072B2;"><strong>Why it matters:</strong> {why}</p>' if why else ""}
+            {f'<p style="font-size: 14px; color: #6B6B6B; font-style: italic;">Example: {example}</p>' if example else ""}
+            {f'<p style="font-size: 14px; color: #0072B2;"><strong>Why it matters:</strong> {why}</p>' if why else ""}
         </div>
         """
 
@@ -411,7 +411,7 @@ def render_glossary_sidebar() -> None:
                     info = get_metric_explanation(metric, audience)
                     st.markdown(f"**{info['name']}**")
                     st.markdown(
-                        f"<p style='font-size: 12px; color: #666;'>{info['explanation']}</p>",
+                        f"<p style='font-size: 14px; color: #6B6B6B;'>{info['explanation']}</p>",
                         unsafe_allow_html=True,
                     )
                     st.markdown("---")

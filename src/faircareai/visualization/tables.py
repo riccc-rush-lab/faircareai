@@ -76,10 +76,10 @@ def create_plain_language_summary(
                     border-radius: 4px; display: inline-block; font-weight: bold;">
             {status}
         </div>
-        <p style="color: #666; font-size: 16px; margin-top: 8px;">{advisory}</p>
+        <p style="color: #6B6B6B; font-size: 16px; margin-top: 8px;">{advisory}</p>
         <p>Largest disparity: <b>{worst_metric}</b> for <b>{worst_group}</b>
            ({abs(worst_value) * 100:.1f}% difference from reference)</p>
-        <p style="font-size: 16px; color: #888; font-style: italic;">
+        <p style="font-size: 16px; color: #9B9A97; font-style: italic;">
             Data provided for governance team review — final decisions made by health system governance committee
         </p>
     </div>

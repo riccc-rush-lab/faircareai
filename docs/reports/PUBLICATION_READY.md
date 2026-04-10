@@ -41,7 +41,7 @@
 | **Type Checking** | ✅ Ready | Mypy strict mode, py.typed marker |
 | **CI/CD** | ✅ Ready | Multi-platform, auto PyPI publish |
 | **Security** | ✅ Ready | No sensitive data, healthcare disclaimer |
-| **License** | ✅ Ready | MIT with healthcare notice |
+| **License** | ✅ Ready | Apache 2.0 with healthcare notice |
 | **Version** | ✅ Ready | 0.2.0 (semver, beta status) |
 | **Temp Files** | ✅ Cleaned | All 60 MB removed |
 | **Git Status** | ✅ Clean | Nothing to commit |
@@ -83,8 +83,8 @@ tests/test_synthetic.py ............................... (31 passed)
 tests/test_tables_viz.py .......................F.........s (34 passed, 1 skipped)
 tests/test_themes.py ................................................... (68 passed)
 tests/test_threshold_in_figures.py .....s. (5 passed, 1 skipped)
-tests/test_vancalster.py .................................... (36 passed)
-tests/test_vancalster_plots.py ......................................... (77 passed)
+tests/test_subgroup_performance.py .................................... (36 passed)
+tests/test_subgroup_plots.py ......................................... (77 passed)
 tests/test_visualization_audit.py .................................... (37 passed)
 
 ================= 1203 passed, 4 skipped, 8 warnings in 40.43s =================
@@ -157,7 +157,7 @@ python3 -c "from faircareai import FairCareAudit; print('✅ Import OK')"
 - [x] No security issues
 - [x] Documentation complete
 - [x] CI/CD configured
-- [x] License present (MIT + healthcare disclaimer)
+- [x] License present (Apache 2.0 + healthcare disclaimer)
 - [x] Version set (0.2.0)
 
 ### ⏭️ Ready for Next Step
@@ -253,7 +253,7 @@ python3 -c "from faircareai import FairCareAudit; print('✅ Import OK')"
 - No patient/test data
 
 ✅ **Proper disclaimers:**
-- MIT license with healthcare notice
+- Apache 2.0 license with healthcare notice
 - Advisory nature documented
 - Institutional approval requirements stated
 

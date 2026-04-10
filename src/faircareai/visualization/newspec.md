@@ -2,7 +2,7 @@
 
 ## Governance Philosophy
 
-> **FairCareAI provides CHAI-grounded guidance and evidence. Final decisions rest with the data scientist and health system.**
+> **FairCareAI provides evidence-based guidance and evidence. Final decisions rest with the data scientist and health system.**
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -13,7 +13,7 @@
 │   │     FairCareAI      │         │   Data Scientist + Health System    │  │
 │   │     PROVIDES:       │         │   DECIDES:                          │  │
 │   ├─────────────────────┤         ├─────────────────────────────────────┤  │
-│   │ • CHAI-aligned      │         │ • Which fairness metric to          │  │
+│   │ • governance-aligned      │         │ • Which fairness metric to          │  │
 │   │   framework         │  ───►   │   prioritize (with justification)   │  │
 │   │ • Metric calculations│        │ • Acceptable thresholds             │  │
 │   │ • Visualizations    │         │ • Whether to proceed to deployment  │  │
@@ -65,7 +65,7 @@
 | 16 | **Descriptive stats: cohort overview** | ✅ | `descriptive_stats["cohort_overview"]` |
 | 17 | **Descriptive stats: outcome rate in test data** | ✅ | Prevalence in `cohort_overview` |
 | 18 | **Descriptive stats: outcome by sensitive attrs** | ✅ | `outcome_by_attribute` with rate ratios |
-| 19 | **CHAI-grounded guidance, human decisions** | ✅ | Disclaimers throughout, advisory language |
+| 19 | **evidence-based guidance, human decisions** | ✅ | Disclaimers throughout, advisory language |
 | 20 | **TRIPOD+AI: AUROC with 95% CI** | ✅ | `overall_performance["discrimination"]` |
 | 21 | **TRIPOD+AI: AUPRC with 95% CI** | ✅ | `overall_performance["discrimination"]` |
 | 22 | **TRIPOD+AI: Calibration (slope, intercept, plot)** | ✅ | `overall_performance["calibration"]` |
@@ -146,7 +146,7 @@ Every FairCareAI report includes these sections in order:
 │  └── 7.4 Signature Block                                                    │
 │                                                                             │
 │  ════════════════════════════════════════════════════════════════════════   │
-│  ⚠️  DISCLAIMER: This report provides CHAI-grounded guidance.               │
+│  ⚠️  DISCLAIMER: This report provides evidence-based guidance.               │
 │      Final deployment decisions rest with the data scientist and            │
 │      health system governance committee.                                    │
 │  ════════════════════════════════════════════════════════════════════════   │
@@ -392,7 +392,7 @@ print(results.governance_recommendation)
 # {
 #   "status": "CONDITIONAL",
 #   "advisory": "Multiple considerations identified — recommend documented mitigation plan",
-#   "disclaimer": "This is CHAI-grounded guidance. Final deployment decisions 
+#   "disclaimer": "This is evidence-based guidance. Final deployment decisions 
 #                  rest with the data scientist and health system governance committee.",
 #   "n_errors": 0,
 #   "n_warnings": 2,
@@ -632,7 +632,7 @@ class FairnessConfig:
     fairness literature. Health systems should adjust these based on their
     clinical context, risk tolerance, and organizational equity goals.
     
-    FairCareAI provides CHAI-grounded guidance. Final decisions on acceptable
+    FairCareAI provides evidence-based guidance. Final decisions on acceptable
     thresholds rest with the data scientist and health system.
     """
     
@@ -1287,7 +1287,7 @@ class FairCareAudit:
         return {
             "status": status,
             "advisory": advisory,  # Changed from "recommendation" to "advisory"
-            "disclaimer": "This is CHAI-grounded guidance. Final deployment decisions "
+            "disclaimer": "This is evidence-based guidance. Final deployment decisions "
                          "rest with the data scientist and health system governance committee.",
             "n_errors": len(errors),
             "n_warnings": len(warnings),
@@ -1375,7 +1375,7 @@ class AuditResults:
             f"  Flags: {len(self.flags)} ({self.governance_recommendation.get('n_errors', 0)} critical, {self.governance_recommendation.get('n_warnings', 0)} warnings)",
             f"",
             f"{'='*70}",
-            f"⚠️  This is CHAI-grounded guidance. Final decisions rest with",
+            f"⚠️  This is evidence-based guidance. Final decisions rest with",
             f"    the data scientist and health system governance committee.",
             f"{'='*70}",
         ]
@@ -2790,7 +2790,7 @@ def compute_fairness_metrics(
 ```python
 # faircareai/fairness/decision_tree.py
 """
-CHAI-grounded recommendations for fairness metric selection.
+evidence-based recommendations for fairness metric selection.
 
 IMPORTANT: These are RECOMMENDATIONS based on CHAI framework and fairness 
 literature, not requirements. The data scientist and health system make 
@@ -2869,7 +2869,7 @@ DECISION_TREE = {
 
 def recommend_fairness_metric(use_case: Optional[UseCaseType]) -> Dict:
     """
-    Provide CHAI-grounded recommendation for fairness metric based on use case.
+    Provide evidence-based recommendation for fairness metric based on use case.
     
     IMPORTANT: This is a RECOMMENDATION, not a requirement. The data scientist
     and health system make the final selection based on their context.
@@ -2883,7 +2883,7 @@ def recommend_fairness_metric(use_case: Optional[UseCaseType]) -> Dict:
             "status": "needs_input",
             "message": "Please specify use_case_type to get fairness metric recommendation",
             "options": [ut.value for ut in UseCaseType],
-            "disclaimer": "Recommendations are CHAI-grounded guidance. Final selection is yours."
+            "disclaimer": "Recommendations are evidence-based guidance. Final selection is yours."
         }
     
     if use_case not in DECISION_TREE:
@@ -2904,7 +2904,7 @@ def recommend_fairness_metric(use_case: Optional[UseCaseType]) -> Dict:
         "considerations": [m.value for m in rec.get("considerations", [])],
         "considerations_note": rec.get("considerations_note", ""),
         "note": rec.get("note", ""),
-        "disclaimer": "This is a CHAI-grounded RECOMMENDATION. The data scientist and "
+        "disclaimer": "This is a evidence-based RECOMMENDATION. The data scientist and "
                      "health system make the final selection. Any metric can be chosen "
                      "with appropriate clinical justification."
     }
@@ -2925,7 +2925,7 @@ def get_impossibility_warning() -> str:
     • Selecting a primary metric is a VALUE JUDGMENT, not a technical decision
     • Different stakeholders may reasonably disagree on the right choice
     
-    FairCareAI provides CHAI-grounded recommendations based on use case type,
+    FairCareAI provides evidence-based recommendations based on use case type,
     but YOU AND YOUR HEALTH SYSTEM must make the final decision based on:
     
     1. The clinical/operational context
@@ -3003,7 +3003,7 @@ GOVERNANCE_DISCLAIMER = """
 ════════════════════════════════════════════════════════════════════════════════
 IMPORTANT: ADVISORY GUIDANCE ONLY
 
-This report provides CHAI-grounded analysis and recommendations to support 
+This report provides evidence-based analysis and recommendations to support 
 governance decisions. It does NOT mandate any particular action.
 
 FINAL DECISIONS REST WITH:

@@ -20,9 +20,9 @@ from enum import Enum
 from typing import Any
 
 from faircareai.core.constants import (
-    VANCALSTER_ALL_CAUTION,
-    VANCALSTER_ALL_OPTIONAL,
-    VANCALSTER_ALL_RECOMMENDED,
+    METRIC_TIER_ALL_CAUTION,
+    METRIC_TIER_ALL_OPTIONAL,
+    METRIC_TIER_ALL_RECOMMENDED,
 )
 
 
@@ -134,15 +134,15 @@ class MetricDisplayConfig:
         metric_lower = metric.lower()
 
         # RECOMMENDED metrics are always shown
-        if metric_lower in VANCALSTER_ALL_RECOMMENDED:
+        if metric_lower in METRIC_TIER_ALL_RECOMMENDED:
             return True
 
         # OPTIONAL metrics shown only if enabled
-        if metric_lower in VANCALSTER_ALL_OPTIONAL:
+        if metric_lower in METRIC_TIER_ALL_OPTIONAL:
             return self.show_optional
 
         # CAUTION metrics shown only if explicitly enabled
-        if metric_lower in VANCALSTER_ALL_CAUTION:
+        if metric_lower in METRIC_TIER_ALL_CAUTION:
             return self.show_caution
 
         # Unknown metrics: show for data scientist, hide for governance
@@ -159,11 +159,11 @@ class MetricDisplayConfig:
         """
         metric_lower = metric.lower()
 
-        if metric_lower in VANCALSTER_ALL_RECOMMENDED:
+        if metric_lower in METRIC_TIER_ALL_RECOMMENDED:
             return "RECOMMENDED"
-        if metric_lower in VANCALSTER_ALL_OPTIONAL:
+        if metric_lower in METRIC_TIER_ALL_OPTIONAL:
             return "OPTIONAL"
-        if metric_lower in VANCALSTER_ALL_CAUTION:
+        if metric_lower in METRIC_TIER_ALL_CAUTION:
             return "CAUTION"
         return "UNKNOWN"
 
@@ -184,7 +184,7 @@ class MetricDisplayConfig:
 # =============================================================================
 
 # OPTIONAL metrics in Van Calster preference order (most to least preferred)
-VANCALSTER_OPTIONAL_PRIORITY: list[str] = [
+METRIC_OPTIONAL_PRIORITY: list[str] = [
     "brier_score",  # Overall performance (highest priority)
     "scaled_brier",  # Overall performance
     "oe_ratio",  # Calibration-in-the-large
@@ -210,7 +210,7 @@ def sort_metrics_by_priority(
 
     Args:
         metrics: List of metric names to sort.
-        priority_list: Custom priority list. Defaults to VANCALSTER_OPTIONAL_PRIORITY.
+        priority_list: Custom priority list. Defaults to METRIC_OPTIONAL_PRIORITY.
 
     Returns:
         Sorted list with priority metrics first, unknown metrics last.
@@ -220,7 +220,7 @@ def sort_metrics_by_priority(
         ['brier_score', 'oe_ratio', 'sensitivity', 'ppv']
     """
     if priority_list is None:
-        priority_list = VANCALSTER_OPTIONAL_PRIORITY
+        priority_list = METRIC_OPTIONAL_PRIORITY
     priority_map = {m.lower(): i for i, m in enumerate(priority_list)}
     return sorted(metrics, key=lambda m: priority_map.get(m.lower(), 999))
 
@@ -646,7 +646,7 @@ class FairnessConfig:
     fairness literature. Health systems should adjust these based on their
     clinical context, risk tolerance, and organizational equity goals.
 
-    FairCareAI provides CHAI-grounded guidance. Final decisions on acceptable
+    FairCareAI provides evidence-based guidance. Final decisions on acceptable
     thresholds rest with the data scientist and health system.
     """
 
@@ -687,11 +687,11 @@ class FairnessConfig:
     decision_thresholds: list[float] = field(default_factory=lambda: [0.5])
 
     # Report settings
-    include_chai_mapping: bool = True
+    include_criteria_mapping: bool = True
     organization_name: str = ""
     report_date: str | None = None
     model_card: dict[str, Any] = field(default_factory=dict)
-    """Optional overrides for CHAI Applied Model Card fields."""
+    """Optional overrides for AI model card fields."""
 
     def validate(self) -> list[str]:
         """Validate config and return list of warnings/errors.

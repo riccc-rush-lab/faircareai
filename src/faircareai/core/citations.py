@@ -9,7 +9,7 @@ Combines two complementary frameworks:
 # ============================================================================
 # CHAI - Coalition for Health AI (Governance Framework)
 # ============================================================================
-CHAI_CITATION = {
+HEALTH_AI_CITATION = {
     "short": "CHAI RAIC Checkpoint 1 (2024)",
     "full": (
         "Coalition for Health AI. RAIC Checkpoint 1: Model Card for "
@@ -20,7 +20,7 @@ CHAI_CITATION = {
 }
 
 # CHAI criteria codes used in this package
-CHAI_CRITERIA = {
+HEALTH_AI_CRITERIA = {
     "AC1.CR92": "Bias Testing - Disparity analysis across demographic groups",
     "AC1.CR95": "Performance Reporting - Subgroup performance metrics",
     "AC1.CR102": "Calibration Assessment - Predicted vs observed outcomes",

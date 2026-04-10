@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Support for Polars DataFrames, Parquet, and CSV files
   - Bootstrap confidence intervals for all metrics
 
-- **CHAI-Aligned Governance Framework**
+- **Responsible AI Governance Framework**
   - Use-case based fairness metric recommendations
   - Impossibility theorem acknowledgment in decision tree
   - Advisory-only outputs with clear disclaimers

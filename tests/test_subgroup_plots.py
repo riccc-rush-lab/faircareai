@@ -8,14 +8,14 @@ Tests cover:
 - create_calibration_plot_by_subgroup function
 - create_decision_curve_by_subgroup function
 - create_risk_distribution_plot function
-- create_vancalster_dashboard function
+- create_subgroup_dashboard function
 """
 
 import numpy as np
 from plotly.graph_objects import Figure
 
 from faircareai.visualization.utils import add_source_annotation
-from faircareai.visualization.vancalster_plots import (
+from faircareai.visualization.subgroup_plots import (
     _generate_auroc_forest_alt_text,
     _generate_calibration_alt_text,
     _generate_decision_curve_alt_text,
@@ -24,7 +24,7 @@ from faircareai.visualization.vancalster_plots import (
     create_calibration_plot_by_subgroup,
     create_decision_curve_by_subgroup,
     create_risk_distribution_plot,
-    create_vancalster_dashboard,
+    create_subgroup_dashboard,
 )
 
 
@@ -641,8 +641,8 @@ class TestCreateRiskDistributionPlot:
         assert "Custom Risk Title" in fig.layout.title.text
 
 
-class TestCreateVancalsterDashboard:
-    """Tests for create_vancalster_dashboard function."""
+class TestCreateSubgroupDashboard:
+    """Tests for create_subgroup_dashboard function."""
 
     def test_returns_figure(self) -> None:
         """Test that function returns a Plotly Figure."""
@@ -671,12 +671,12 @@ class TestCreateVancalsterDashboard:
                 }
             }
         }
-        fig = create_vancalster_dashboard(results)
+        fig = create_subgroup_dashboard(results)
         assert isinstance(fig, Figure)
 
     def test_empty_subgroups(self) -> None:
         """Test with empty subgroups."""
-        fig = create_vancalster_dashboard({"by_subgroup": {}})
+        fig = create_subgroup_dashboard({"by_subgroup": {}})
         assert isinstance(fig, Figure)
         # Should have annotation about no data
         assert len(fig.layout.annotations) >= 1
@@ -693,7 +693,7 @@ class TestCreateVancalsterDashboard:
                 }
             }
         }
-        fig = create_vancalster_dashboard(results, title="Custom Dashboard")
+        fig = create_subgroup_dashboard(results, title="Custom Dashboard")
         assert "Custom Dashboard" in fig.layout.title.text
 
     def test_multiple_groups(self) -> None:
@@ -731,7 +731,7 @@ class TestCreateVancalsterDashboard:
                 },
             }
         }
-        fig = create_vancalster_dashboard(results)
+        fig = create_subgroup_dashboard(results)
         assert isinstance(fig, Figure)
 
     def test_handles_missing_auroc(self) -> None:
@@ -746,7 +746,7 @@ class TestCreateVancalsterDashboard:
                 }
             }
         }
-        fig = create_vancalster_dashboard(results)
+        fig = create_subgroup_dashboard(results)
         assert isinstance(fig, Figure)
 
     def test_handles_missing_calibration(self) -> None:
@@ -761,7 +761,7 @@ class TestCreateVancalsterDashboard:
                 }
             }
         }
-        fig = create_vancalster_dashboard(results)
+        fig = create_subgroup_dashboard(results)
         assert isinstance(fig, Figure)
 
     def test_handles_missing_decision_curve(self) -> None:
@@ -778,7 +778,7 @@ class TestCreateVancalsterDashboard:
                 }
             }
         }
-        fig = create_vancalster_dashboard(results)
+        fig = create_subgroup_dashboard(results)
         assert isinstance(fig, Figure)
 
     def test_handles_risk_distribution_with_error(self) -> None:
@@ -796,7 +796,7 @@ class TestCreateVancalsterDashboard:
                 }
             }
         }
-        fig = create_vancalster_dashboard(results)
+        fig = create_subgroup_dashboard(results)
         assert isinstance(fig, Figure)
 
     def test_long_group_name_truncation(self) -> None:
@@ -814,5 +814,5 @@ class TestCreateVancalsterDashboard:
                 }
             }
         }
-        fig = create_vancalster_dashboard(results)
+        fig = create_subgroup_dashboard(results)
         assert isinstance(fig, Figure)

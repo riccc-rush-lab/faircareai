@@ -3,58 +3,79 @@
 [![CI](https://github.com/RushAI-jcr/faircare/actions/workflows/ci.yml/badge.svg)](https://github.com/RushAI-jcr/faircare/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/faircareai.svg)](https://pypi.org/project/faircareai/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![WCAG 2.1 AA](https://img.shields.io/badge/WCAG-2.1%20AA-green.svg)](https://www.w3.org/WAI/WCAG21/quickref/)
 
-**Healthcare AI Fairness Auditing for Clinical Decision Support**
-
-FairCareAI is a Python package for auditing machine learning models for fairness in clinical contexts. Built on the **Van Calster et al. (2025)** methodology and aligned with the **CHAI RAIC** governance framework, it helps health system data scientists present evidence-based fairness analysis to governance stakeholders.
+**Fairness auditing for healthcare AI — from model predictions to governance-ready reports in minutes.**
 
 ---
 
-## Table of Contents
+## Why FairCareAI Exists
 
-- [Key Features](#key-features)
-- [Governance Philosophy](#governance-philosophy)
-- [Installation](#installation)
-- [Data Preparation Guide](#data-preparation-guide)
-- [Quick Start](#quick-start)
-- [Output Personas](#output-personas)
-- [Data Requirements](#data-requirements)
-- [Fairness Visualizations](#fairness-visualizations)
-- [Fairness Metrics](#fairness-metrics)
-- [Use Cases](#use-cases)
-- [API Reference](#api-reference)
-- [Accessibility Features](#accessibility-features)
-- [Governance Compliance (CHAI RAIC)](#governance-compliance-chai-raic)
-- [Interactive Dashboard](#interactive-dashboard)
-- [Configuration](#configuration)
-- [Contributing](#contributing)
-- [Citation](#citation)
-- [References](#references)
+Healthcare AI models can quietly harm patients when they perform differently across demographic groups. A readmission model that catches 85% of cases overall might catch only 60% for Black patients. A sepsis alert that works well for insured populations might misfire for Medicaid patients. These disparities are invisible without deliberate measurement.
+
+Most hospitals have no standardized way to detect, quantify, or present these disparities to governance committees. Data scientists know the statistics but lack tools to produce the publication-ready, plain-language reports that clinical leadership needs to make deployment decisions.
+
+**FairCareAI closes that gap.** It takes your model's predictions and produces a complete fairness audit — discrimination, calibration, clinical utility, and subgroup analysis — with two output modes: full technical reports for data scientists, and streamlined 3-5 page reports for governance committees.
+
+---
+
+## Who This Package Is For
+
+| Role | What FairCareAI gives you |
+|------|---------------------------|
+| **Hospital data scientists** | Automated fairness metrics (AUROC, calibration, DCA) with bootstrap confidence intervals, exportable as HTML/PDF/PPTX |
+| **Clinical informaticists** | Governance-ready reports with plain-language explanations suitable for IRB, ethics committees, or C-suite review |
+| **Governance committees** | Clear pass/warning/flag indicators, sign-off workflows, and audit trail documentation |
+| **Health equity researchers** | Publication-ready figures (WCAG 2.1 AA, colorblind-safe, 14px minimum) with full methodology citations |
+| **Regulatory & compliance teams** | Structured model cards, responsible AI checklists, and reproducibility bundles |
+
+---
+
+## How It Works
+
+```bash
+pip install faircareai
+```
+
+```python
+from faircareai import FairCareAudit, FairnessConfig, FairnessMetric
+
+# Point at your model's predictions
+audit = FairCareAudit(data="predictions.parquet", pred_col="risk_score", target_col="readmit_30d")
+
+# Detect and accept demographic columns
+audit.suggest_attributes()
+audit.accept_suggested_attributes([1, 2, 3])  # e.g., race, sex, insurance
+
+# Configure and run
+audit.config = FairnessConfig(
+    model_name="Readmission Risk Model v2",
+    primary_fairness_metric=FairnessMetric.EQUALIZED_ODDS,
+    fairness_justification="Model triggers intervention; equal TPR/FPR ensures equitable access.",
+)
+results = audit.run()
+
+# Export
+results.to_html("technical_report.html")                      # Full data scientist report
+results.to_governance_pdf("governance_report.pdf")             # 3-5 page governance summary
+results.to_pptx("committee_deck.pptx")                        # PowerPoint for meetings
+```
+
+> **Package SUGGESTS, humans DECIDE.** All outputs are advisory. Final deployment decisions rest with clinical stakeholders and governance committees who understand the local context.
 
 ---
 
 ## Key Features
 
-- **Two Output Personas**: Full technical reports for data scientists, streamlined 3-5 page reports for governance committees
-- **Van Calster et al. (2025) Methodology**: 4 recommended fairness visualizations (AUROC, Calibration, Sensitivity/TPR, Selection Rate)
-- **CHAI RAIC Framework**: Aligned with Coalition for Health AI governance standards
-- **Plain Language Explanations**: Every visualization includes clear explanations of axes, metrics, and clinical significance
-- **Publication-Ready Typography**: Minimum 14px fonts
-- **Accessibility-First Design**: WCAG 2.1 AA compliant, colorblind-safe palettes
-- **Multiple Export Formats**: HTML dashboards, PDF reports, PNG figure bundles, charted PowerPoint decks
-- **Model Card + Reproducibility Bundle**: Governance-ready summary and environment capture
-- **HIPAA-Friendly**: All computation runs locally, no cloud dependencies
-- **TRIPOD+AI Compliant**: Scientifically validated performance metrics
-
----
-
-## Governance Philosophy
-
-> **Package SUGGESTS, humans DECIDE**
-
-All outputs are ADVISORY, not mandates. FairCareAI computes metrics and presents visualizations per established clinical AI fairness methodology. Final deployment decisions rest with clinical stakeholders and governance committees who understand the local context, organizational values, and patient populations.
+- **Two output personas** — Full technical reports for data scientists, streamlined 3-5 page reports for governance committees
+- **Discrimination, calibration & clinical utility** — AUROC, calibration curves, Brier score, DCA, and classification metrics per Van Calster et al. (2025)
+- **Subgroup fairness analysis** — Performance broken down by race, sex, insurance, age, language, and custom attributes
+- **Plain-language explanations** — Every visualization includes clear explanations of what the metric means and why it matters
+- **Multiple export formats** — HTML, PDF, PowerPoint, PNG bundles, JSON, model cards, reproducibility bundles
+- **Publication-ready** — Minimum 14px fonts, WCAG 2.1 AA compliant, colorblind-safe Okabe-Ito palette
+- **HIPAA-friendly** — All computation runs locally, no cloud dependencies, no data leaves your machine
+- **Interactive dashboard** — Streamlit UI for upload, analysis, and export without writing code
 
 ---
 
@@ -77,13 +98,13 @@ python -m playwright install chromium  # Required for PDF generation
 
 PNG export uses Kaleido for static Plotly rendering (included in `faircareai[export]`).
 
-### With Compliance Validation (CHAI XML Schema)
+### With Compliance Validation (XML Schema)
 
 ```bash
 pip install "faircareai[compliance]"
 ```
 
-Installs `xmlschema` to validate CHAI model card XML against the v0.1 XSD.
+Installs `xmlschema` to validate AI model card XML against the v0.1 XSD.
 
 ### Development Installation
 
@@ -252,7 +273,7 @@ FairCareAI accepts multiple input formats. Choose the one that fits your workflo
 
 ```python
 from faircareai import FairCareAudit, FairnessConfig
-from faircareai.core.config import FairnessMetric, UseCaseType
+from faircareai import FairnessMetric, UseCaseType
 
 # Option A: Parquet file (recommended for large datasets)
 audit = FairCareAudit(
@@ -401,11 +422,11 @@ results.to_pdf("governance.pdf", persona="governance")
 # PowerPoint (always governance-focused)
 results.to_pptx("governance_deck.pptx")
 
-# Model card + reproducibility bundle
+# Model card + compliance artifacts
 results.to_model_card("model_card.md")
-results.to_chai_model_card("chai_model_card.xml")
-results.to_chai_model_card_json("chai_model_card.json")
-results.to_raic_checkpoint_1("raic_checkpoint_1.json")
+results.to_structured_model_card("model_card.xml")
+results.to_structured_model_card_json("model_card.json")
+results.to_regulatory_checklist("checklist.json")
 results.to_reproducibility_bundle("reproducibility.json")
 
 # CLI reproducibility bundle
@@ -423,7 +444,7 @@ FairCareAI aligns governance artifacts with the CHAI Applied Model Card template
 - [CHAI Applied Model Card schema](https://github.com/coalition-for-health-ai/mc-schema)
 - [CHAI RAIC Checkpoint 1 checklist PDF](https://chai.org/wp-content/uploads/2025/02/Responsible-AI-Checkpoint-1-CHAI-Responsible-AI-Checklist.pdf)
 
-`to_raic_checkpoint_1()` exports the full checklist with criterion IDs, auto-evaluable evidence where available, and reviewer placeholders for manual governance sign-off.
+`to_regulatory_checklist()` exports the full checklist with criterion IDs, auto-evaluable evidence where available, and reviewer placeholders for manual governance sign-off.
 
 ---
 
@@ -662,7 +683,7 @@ results = audit.run(bootstrap_ci=True, n_bootstrap=1000) -> AuditResults
 
 #### `FairnessConfig`
 
-Configuration for fairness audit following CHAI RAIC framework.
+Configuration for fairness audit.
 
 ```python
 config = FairnessConfig(
@@ -672,7 +693,7 @@ config = FairnessConfig(
     intended_use: str = "",                       # Recommended
     intended_population: str = "",                # Recommended
     primary_fairness_metric: FairnessMetric | None = None,  # Required
-    fairness_justification: str = "",             # Required (CHAI AC1.CR93)
+    fairness_justification: str = "",             # Required
     use_case_type: UseCaseType | None = None,
     thresholds: dict = {...},                     # Configurable
     decision_thresholds: list[float] = [0.5],
@@ -701,7 +722,7 @@ Results container with visualization and export capabilities.
 - `audit_id`: Unique identifier for this audit run
 - `run_timestamp`: ISO timestamp when the audit executed
 - `descriptive_stats`: Cohort characteristics (Table 1)
-- `overall_performance`: TRIPOD+AI metrics
+- `overall_performance`: Discrimination, calibration & classification metrics
 - `subgroup_performance`: Performance by demographic group
 - `fairness_metrics`: Fairness metrics per attribute
 - `intersectional`: Intersectional analysis results
@@ -808,7 +829,7 @@ All visualizations meet or exceed WCAG 2.1 Level AA standards:
 
 FairCareAI uses colorblind-safe palettes tested with CVD (color vision deficiency) simulation:
 
-- **Primary Palette**: Blue (#1f77b4) and Orange (#ff7f0e) - distinguishable for all CVD types
+- **Primary Palette**: Blue (#0072B2) and Orange (#E69F00) — Okabe-Ito, distinguishable for all CVD types
 - **Status Colors**: Green (success), Yellow (warning), Red (error) - supplemented with icons
 - **Subgroup Colors**: Carefully selected categorical palette avoiding red-green confusion
 
@@ -840,11 +861,11 @@ All governance outputs use plain language principles:
 
 ---
 
-## Governance Compliance (CHAI RAIC)
+## Governance Compliance
 
 FairCareAI is aligned with the [Coalition for Health AI (CHAI) RAIC Framework](https://www.chai.org/workgroup/responsible-ai/responsible-ai-checklists-raic) Checkpoint 1: Fairness Assessment.
 
-### CHAI Assurance Criteria Mapping
+### Responsible AI Criteria Mapping
 
 | CHAI Criterion | FairCareAI Feature | Implementation |
 |----------------|-------------------|----------------|
@@ -858,11 +879,11 @@ FairCareAI is aligned with the [Coalition for Health AI (CHAI) RAIC Framework](h
 
 ### Governance Report Sections
 
-Generated reports include 7 CHAI-aligned sections:
+Generated reports include 7 governance-aligned sections:
 
 1. **Executive Summary** - Go/no-go advisory with key findings
 2. **Descriptive Statistics** - Cohort characteristics (Table 1)
-3. **Overall Performance** - AUROC, AUPRC, calibration metrics (TRIPOD+AI)
+3. **Overall Performance** - AUROC, AUPRC, calibration, and classification metrics
 4. **Subgroup Performance** - Performance by demographic group
 5. **Fairness Assessment** - Disparity analysis with confidence intervals
 6. **Limitations & Flags** - Warnings and considerations
@@ -918,7 +939,7 @@ faircareai audit predictions.parquet -p risk_score -t outcome --threshold 0.3
 | `-t`, `--target-col` | Target/outcome column name | `-t readmit_30d` |
 | `-a`, `--attributes` | Sensitive attribute (repeatable) | `-a race -a sex` |
 | `-o`, `--output` | Output file path | `-o report.html` |
-| `--format` | Output format (html, pdf, pptx, json, png, model-card, chai-model-card, chai-model-card-json, raic-checklist, repro-bundle) | `--format pdf` |
+| `--format` | Output format (html, pdf, pptx, json, png, model-card, ai-model-card, ai-model-card-json, raic-checklist, repro-bundle) | `--format pdf` |
 | `--persona` | Output persona (data_scientist, governance) | `--persona governance` |
 | `--include-optional` | Include OPTIONAL metrics (data scientist) | `--include-optional` |
 | `--seed` | Random seed for bootstrap | `--seed 42` |
@@ -954,7 +975,7 @@ faircareai dashboard
 
 ```python
 from faircareai import FairCareAudit, FairnessConfig
-from faircareai.core.config import FairnessMetric, UseCaseType, ModelType
+from faircareai import FairnessMetric, UseCaseType, ModelType
 
 audit = FairCareAudit(
     data="predictions.parquet",
@@ -982,7 +1003,7 @@ audit.config = FairnessConfig(
     model_version="2.1.0",
     model_type=ModelType.BINARY_CLASSIFIER,
 
-    # Intended use (CHAI recommended)
+    # Intended use (recommended)
     intended_use="Identify high-risk patients for care management outreach within 24h of discharge",
     intended_population="Adult patients (18+) discharged from medicine or surgery services",
     out_of_scope=[
@@ -991,7 +1012,7 @@ audit.config = FairnessConfig(
         "Patients in hospice care"
     ],
 
-    # Fairness configuration (CHAI required)
+    # Fairness configuration (required)
     primary_fairness_metric=FairnessMetric.EQUALIZED_ODDS,
     fairness_justification=(
         "This model triggers a beneficial intervention (care management). "
@@ -1077,7 +1098,7 @@ If you use FairCareAI in your research or clinical implementation, please cite:
   author = {FairCareAI Contributors},
   year = {2026},
   url = {https://github.com/RushAI-jcr/faircare},
-  version = {0.2.0},
+  version = {0.2.1},
   note = {Python package for auditing ML fairness in healthcare}
 }
 ```
@@ -1128,12 +1149,12 @@ If you use FairCareAI in your research or clinical implementation, please cite:
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+Apache License 2.0 - see [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
 
 ---
 
 ## Disclaimer
 
-FairCareAI provides CHAI-grounded guidance for fairness auditing. All outputs are **ADVISORY**. Final deployment decisions rest with the health system, clinical governance committees, and regulatory authorities who understand local context, patient populations, and organizational values.
+FairCareAI provides evidence-based guidance for fairness auditing. All outputs are **ADVISORY**. Final deployment decisions rest with the health system, clinical governance committees, and regulatory authorities who understand local context, patient populations, and organizational values.
 
 This software is provided "as is" without warranty of any kind. Healthcare organizations are responsible for validating all outputs in their specific clinical context before deployment.

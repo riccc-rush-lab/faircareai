@@ -382,7 +382,7 @@ def create_auroc_forest_plot(
             text=(
                 f"<b>{title}</b>"
                 + (
-                    f"<br><span style='font-size:14px;color:#666'>{subtitle}</span>"
+                    f"<br><span style='font-size:14px;color:#6B6B6B'>{subtitle}</span>"
                     if subtitle
                     else ""
                 )
@@ -391,7 +391,7 @@ def create_auroc_forest_plot(
         ),
         xaxis=dict(
             title=dict(text=x_axis_text, font=dict(size=TYPOGRAPHY["axis_title_size"])),
-            range=[0.4, 1.0],
+            range=[0.4, 1.08],
             showgrid=True,
             gridcolor=SEMANTIC_COLORS["grid"],
             gridwidth=1,
@@ -404,7 +404,7 @@ def create_auroc_forest_plot(
         ),
         template="faircareai",
         height=calculate_chart_height(len(sorted_groups), "forest"),
-        margin=dict(l=200, r=100, t=120, b=100),
+        margin=dict(l=200, r=120, t=120, b=100),
         meta={"description": alt_text},
     )
 
@@ -573,7 +573,7 @@ def create_calibration_plot_by_subgroup(
         title=dict(
             text=(
                 f"<b>{title}</b><br>"
-                f"<span style='font-size:{TYPOGRAPHY['body_size']}px;color:#666'>"
+                f"<span style='font-size:{TYPOGRAPHY['body_size']}px;color:#6B6B6B'>"
                 f"{subtitle_text}</span>"
             ),
             font=dict(family=TYPOGRAPHY["heading_font"], size=TYPOGRAPHY["subheading_size"]),
@@ -646,7 +646,20 @@ def create_decision_curve_by_subgroup(
     if title is None:
         title = f"{metric_label} by Demographic Subgroup"
     groups = results.get("groups", {})
-    threshold = results.get("primary_threshold", 0.5)
+    threshold = results.get("primary_threshold", results.get("threshold", 0.5))
+
+    # Support compute_subgroup_metrics_suite output (by_subgroup -> clinical_utility -> decision_curve)
+    if not groups:
+        by_sub = results.get("by_subgroup", {})
+        if by_sub:
+            groups = {}
+            for gname, gdata in by_sub.items():
+                cu = gdata.get("clinical_utility", {})
+                dc_data = cu.get("decision_curve", {})
+                groups[gname] = {
+                    "decision_curve": dc_data,
+                    "n": gdata.get("n", 0),
+                }
 
     if not groups:
         fig = go.Figure()
@@ -738,8 +751,8 @@ def create_decision_curve_by_subgroup(
     fig.add_vline(
         x=threshold,
         line=dict(color=SEMANTIC_COLORS["primary"], width=2, dash="dashdot"),
-        annotation_text=f"Primary threshold: {threshold:.0%}",
-        annotation_position="top right",
+        annotation_text=f"Threshold: {threshold:.0%}",
+        annotation_position="top left",
         annotation_font=dict(size=TYPOGRAPHY["tick_size"]),
     )
 
@@ -760,7 +773,7 @@ def create_decision_curve_by_subgroup(
         title=dict(
             text=(
                 f"<b>{title}</b><br>"
-                f"<span style='font-size:{TYPOGRAPHY['body_size']}px;color:#666'>"
+                f"<span style='font-size:{TYPOGRAPHY['body_size']}px;color:#6B6B6B'>"
                 f"{subtitle_text}</span>"
             ),
             font=dict(family=TYPOGRAPHY["heading_font"], size=TYPOGRAPHY["subheading_size"]),
@@ -776,7 +789,7 @@ def create_decision_curve_by_subgroup(
         legend=LEGEND_POSITIONS["top_horizontal"],
         template="faircareai",
         height=500,
-        margin=dict(l=80, r=40, t=120, b=100),
+        margin=dict(l=80, r=100, t=120, b=80),
         meta={"description": alt_text},
     )
 
@@ -841,11 +854,17 @@ def create_risk_distribution_plot(
 
     # Create side-by-side violin/box plots for each group
     n_groups = len(groups)
+    # Truncate long group names to prevent subplot title overlap
+    max_title_len = max(10, 30 // max(n_groups, 1))
+    subplot_titles = []
+    for g, d in groups.items():
+        label = g if len(g) <= max_title_len else g[:max_title_len] + "…"
+        subplot_titles.append(f"{label} (n={d.get('n', 0):,})")
     fig = make_subplots(
         rows=1,
         cols=n_groups,
-        subplot_titles=[f"{g} (n={d.get('n', 0):,})" for g, d in groups.items()],
-        horizontal_spacing=0.05,
+        subplot_titles=subplot_titles,
+        horizontal_spacing=max(0.05, 0.12 / max(n_groups, 1)),
     )
 
     for i, (_group_name, group_data) in enumerate(groups.items(), 1):
@@ -904,44 +923,19 @@ def create_risk_distribution_plot(
                         col=i,
                     )
             else:
-                # Use summary statistics if histogram not available
-                mean = outcome_data.get("mean", 0.5)
-                std = outcome_data.get("std", 0.1)
-                n = outcome_data.get("n", 100)
-
-                # Generate synthetic data for visualization
-                rng = np.random.default_rng(42)
-                x_vals = rng.normal(mean, std, min(n, 200))
-                x_vals = np.clip(x_vals, 0, 1)
-
-                if plot_type == "violin":
-                    fig.add_trace(
-                        go.Violin(
-                            y=x_vals,
-                            name=name,
-                            line_color=color,
-                            fillcolor=color,
-                            opacity=0.6,
-                            meanline_visible=True,
-                            showlegend=(i == 1),
-                            legendgroup=name,
-                        ),
-                        row=1,
-                        col=i,
-                    )
-                else:
-                    fig.add_trace(
-                        go.Box(
-                            y=x_vals,
-                            name=name,
-                            marker_color=color,
-                            boxmean=True,
-                            showlegend=(i == 1),
-                            legendgroup=name,
-                        ),
-                        row=1,
-                        col=i,
-                    )
+                # No histogram data available — show placeholder instead of synthetic data
+                fig.add_annotation(
+                    text=f"No distribution data<br>for {name}",
+                    xref=f"x{i} domain" if i > 1 else "x domain",
+                    yref=f"y{i} domain" if i > 1 else "y domain",
+                    x=0.5,
+                    y=0.5,
+                    showarrow=False,
+                    font=dict(
+                        size=TYPOGRAPHY["annotation_size"],
+                        color=SEMANTIC_COLORS["text_secondary"],
+                    ),
+                )
 
     # Generate alt text
     alt_text = _generate_risk_distribution_alt_text(results, title)
@@ -958,7 +952,7 @@ def create_risk_distribution_plot(
         title=dict(
             text=(
                 f"<b>{title}</b><br>"
-                f"<span style='font-size:{TYPOGRAPHY['body_size']}px;color:#666'>"
+                f"<span style='font-size:{TYPOGRAPHY['body_size']}px;color:#6B6B6B'>"
                 f"{subtitle_text}</span>"
             ),
             font=dict(family=TYPOGRAPHY["heading_font"], size=TYPOGRAPHY["subheading_size"]),
@@ -993,11 +987,11 @@ def create_risk_distribution_plot(
 # =============================================================================
 
 
-def create_vancalster_dashboard(
+def create_subgroup_dashboard(
     results: dict[str, Any],
-    title: str = "Van Calster Performance Assessment",
+    title: str = "Subgroup Performance Assessment",
 ) -> go.Figure:
-    """Create comprehensive dashboard with all four Van Calster RECOMMENDED plots.
+    """Create comprehensive dashboard with all four RECOMMENDED plots.
 
     Van Calster et al. (2025) Classification: RECOMMENDED (All 4 panels)
     - This dashboard contains only RECOMMENDED metrics
@@ -1010,7 +1004,7 @@ def create_vancalster_dashboard(
     - Bottom right: Risk Distributions (overall performance)
 
     Args:
-        results: Full results from compute_vancalster_metrics().
+        results: Full results from compute_subgroup_metrics_suite().
         title: Dashboard title.
 
     Returns:
@@ -1043,8 +1037,8 @@ def create_vancalster_dashboard(
             "Decision Curves (Net Benefit)",
             "Risk Distributions",
         ),
-        vertical_spacing=0.15,
-        horizontal_spacing=0.12,
+        vertical_spacing=0.18,
+        horizontal_spacing=0.15,
         specs=[
             [{"type": "scatter"}, {"type": "scatter"}],
             [{"type": "scatter"}, {"type": "box"}],
@@ -1096,7 +1090,7 @@ def create_vancalster_dashboard(
             x=[0, 1],
             y=[0, 1],
             mode="lines",
-            line=dict(color="gray", dash="dash"),
+            line=dict(color="#CCCCCC", dash="dash"),
             showlegend=False,
         ),
         row=1,
@@ -1199,7 +1193,14 @@ def create_vancalster_dashboard(
         legend=LEGEND_POSITIONS["bottom_horizontal"],
     )
 
-    # Update axes with publication-style font sizing
+    # Update axes with publication-style font sizing and descriptive titles
+    fig.update_xaxes(
+        title_text="Subgroup",
+        title_font=dict(size=TYPOGRAPHY["axis_title_size"]),
+        tickfont=dict(size=TYPOGRAPHY["tick_size"]),
+        row=1,
+        col=1,
+    )
     fig.update_yaxes(
         title_text="AUROC",
         title_font=dict(size=TYPOGRAPHY["axis_title_size"]),
@@ -1209,13 +1210,25 @@ def create_vancalster_dashboard(
         col=1,
     )
     fig.update_xaxes(
-        tickformat=".0%", tickfont=dict(size=TYPOGRAPHY["tick_size"]), range=[0, 1], row=1, col=2
+        title_text="Predicted Probability",
+        title_font=dict(size=TYPOGRAPHY["axis_title_size"]),
+        tickformat=".0%",
+        tickfont=dict(size=TYPOGRAPHY["tick_size"]),
+        range=[0, 1],
+        row=1,
+        col=2,
     )
     fig.update_yaxes(
-        tickformat=".0%", tickfont=dict(size=TYPOGRAPHY["tick_size"]), range=[0, 1], row=1, col=2
+        title_text="Observed Probability",
+        title_font=dict(size=TYPOGRAPHY["axis_title_size"]),
+        tickformat=".0%",
+        tickfont=dict(size=TYPOGRAPHY["tick_size"]),
+        range=[0, 1],
+        row=1,
+        col=2,
     )
     fig.update_xaxes(
-        title_text="Threshold",
+        title_text="Threshold Probability",
         title_font=dict(size=TYPOGRAPHY["axis_title_size"]),
         tickformat=".0%",
         tickfont=dict(size=TYPOGRAPHY["tick_size"]),
@@ -1229,8 +1242,15 @@ def create_vancalster_dashboard(
         row=2,
         col=1,
     )
+    fig.update_xaxes(
+        title_text="Subgroup",
+        title_font=dict(size=TYPOGRAPHY["axis_title_size"]),
+        tickfont=dict(size=TYPOGRAPHY["tick_size"]),
+        row=2,
+        col=2,
+    )
     fig.update_yaxes(
-        title_text="Probability",
+        title_text="Predicted Probability",
         title_font=dict(size=TYPOGRAPHY["axis_title_size"]),
         tickformat=".0%",
         tickfont=dict(size=TYPOGRAPHY["tick_size"]),

@@ -388,7 +388,7 @@ class AuditFlag(TypedDict):
     details: str
     """Detailed explanation of the flag."""
 
-    chai_criteria: str
+    criteria_ref: str
     """CHAI criteria reference (e.g., 'AC1.CR92')."""
 
     attribute: NotRequired[str]

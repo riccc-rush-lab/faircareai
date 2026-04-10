@@ -1,0 +1,36 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Source code
+*.py text diff=python
+*.pyi text diff=python
+*.ipynb text
+
+# Documentation
+*.md text diff=markdown
+*.rst text
+*.txt text
+*.yml text
+*.yaml text
+*.toml text
+*.cfg text
+*.ini text
+*.json text
+
+# Graphics
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text
+
+# Archives
+*.zip binary
+*.gz binary
+*.tar binary
+*.whl binary
+
+# Prevent large generated files from bloating diffs
+*.csv diff=csv
+*.parquet binary

@@ -176,27 +176,27 @@ PROB_CLIP_MAX: Final[float] = 1 - 1e-7
 # - USE_WITH_CAUTION: Improper measures (Table 2 "Inadvisable")
 
 # Discrimination metrics
-VANCALSTER_RECOMMENDED_DISCRIMINATION: Final[tuple[str, ...]] = ("auroc",)
+METRIC_TIER_RECOMMENDED_DISCRIMINATION: Final[tuple[str, ...]] = ("auroc",)
 """Van Calster RECOMMENDED: AUROC is the key discrimination measure."""
 
-VANCALSTER_OPTIONAL_DISCRIMINATION: Final[tuple[str, ...]] = (
+METRIC_TIER_OPTIONAL_DISCRIMINATION: Final[tuple[str, ...]] = (
     "discrimination_slope",  # Improper but sometimes useful for internal validation
 )
 """Van Calster OPTIONAL: Acceptable for data science teams."""
 
-VANCALSTER_CAUTION_DISCRIMINATION: Final[tuple[str, ...]] = (
+METRIC_TIER_CAUTION_DISCRIMINATION: Final[tuple[str, ...]] = (
     "auprc",  # Mixes statistical with decision-analytical
     "partial_auroc",  # Mixes statistical with decision-analytical
 )
 """Van Calster INADVISABLE: Use with explicit caveats only."""
 
 # Calibration metrics
-VANCALSTER_RECOMMENDED_CALIBRATION: Final[tuple[str, ...]] = (
+METRIC_TIER_RECOMMENDED_CALIBRATION: Final[tuple[str, ...]] = (
     "calibration_plot",  # Smoothed (loess) calibration plot
 )
 """Van Calster RECOMMENDED: Calibration plot is essential."""
 
-VANCALSTER_OPTIONAL_CALIBRATION: Final[tuple[str, ...]] = (
+METRIC_TIER_OPTIONAL_CALIBRATION: Final[tuple[str, ...]] = (
     "oe_ratio",  # Interpretable but partial
     "calibration_intercept",  # Hard to interpret
     "calibration_slope",  # Hard to interpret
@@ -209,23 +209,23 @@ VANCALSTER_OPTIONAL_CALIBRATION: Final[tuple[str, ...]] = (
 """Van Calster OPTIONAL: Acceptable for data science teams."""
 
 # Clinical utility metrics
-VANCALSTER_RECOMMENDED_CLINICAL_UTILITY: Final[tuple[str, ...]] = (
+METRIC_TIER_RECOMMENDED_CLINICAL_UTILITY: Final[tuple[str, ...]] = (
     "net_benefit",
     "standardized_net_benefit",
     "decision_curve",
 )
 """Van Calster RECOMMENDED: Essential for clinical decision support."""
 
-VANCALSTER_OPTIONAL_CLINICAL_UTILITY: Final[tuple[str, ...]] = ("expected_cost",)
+METRIC_TIER_OPTIONAL_CLINICAL_UTILITY: Final[tuple[str, ...]] = ("expected_cost",)
 """Van Calster OPTIONAL: Alternative to net benefit."""
 
 # Overall performance metrics
-VANCALSTER_RECOMMENDED_OVERALL: Final[tuple[str, ...]] = (
+METRIC_TIER_RECOMMENDED_OVERALL: Final[tuple[str, ...]] = (
     "risk_distribution_plot",  # Shows probability distributions by outcome
 )
 """Van Calster RECOMMENDED: Distribution plots provide valuable insights."""
 
-VANCALSTER_OPTIONAL_OVERALL: Final[tuple[str, ...]] = (
+METRIC_TIER_OPTIONAL_OVERALL: Final[tuple[str, ...]] = (
     "loglikelihood",
     "logloss",
     "mcfadden_r2",
@@ -234,13 +234,13 @@ VANCALSTER_OPTIONAL_OVERALL: Final[tuple[str, ...]] = (
 )
 """Van Calster OPTIONAL: Useful for model selection."""
 
-VANCALSTER_CAUTION_OVERALL: Final[tuple[str, ...]] = (
+METRIC_TIER_CAUTION_OVERALL: Final[tuple[str, ...]] = (
     "mape",  # Improper
 )
 """Van Calster INADVISABLE: Mean absolute prediction error is improper."""
 
 # Classification metrics
-VANCALSTER_OPTIONAL_CLASSIFICATION: Final[tuple[str, ...]] = (
+METRIC_TIER_OPTIONAL_CLASSIFICATION: Final[tuple[str, ...]] = (
     "sensitivity",  # Can be descriptive if reported with specificity
     "specificity",  # Can be descriptive if reported with sensitivity
     "ppv",  # Can be descriptive if reported with NPV
@@ -248,7 +248,7 @@ VANCALSTER_OPTIONAL_CLASSIFICATION: Final[tuple[str, ...]] = (
 )
 """Van Calster OPTIONAL: Acceptable if reported in pairs (Sens+Spec, PPV+NPV)."""
 
-VANCALSTER_CAUTION_CLASSIFICATION: Final[tuple[str, ...]] = (
+METRIC_TIER_CAUTION_CLASSIFICATION: Final[tuple[str, ...]] = (
     "accuracy",  # Improper at clinically relevant thresholds
     "balanced_accuracy",  # Improper at clinically relevant thresholds
     "youden_index",  # Improper at clinically relevant thresholds
@@ -269,26 +269,26 @@ measure violating both characteristics."
 """
 
 # Combined sets for easy filtering
-VANCALSTER_ALL_RECOMMENDED: Final[tuple[str, ...]] = (
-    *VANCALSTER_RECOMMENDED_DISCRIMINATION,
-    *VANCALSTER_RECOMMENDED_CALIBRATION,
-    *VANCALSTER_RECOMMENDED_CLINICAL_UTILITY,
-    *VANCALSTER_RECOMMENDED_OVERALL,
+METRIC_TIER_ALL_RECOMMENDED: Final[tuple[str, ...]] = (
+    *METRIC_TIER_RECOMMENDED_DISCRIMINATION,
+    *METRIC_TIER_RECOMMENDED_CALIBRATION,
+    *METRIC_TIER_RECOMMENDED_CLINICAL_UTILITY,
+    *METRIC_TIER_RECOMMENDED_OVERALL,
 )
 """All Van Calster RECOMMENDED metrics - use for governance reports."""
 
-VANCALSTER_ALL_OPTIONAL: Final[tuple[str, ...]] = (
-    *VANCALSTER_OPTIONAL_DISCRIMINATION,
-    *VANCALSTER_OPTIONAL_CALIBRATION,
-    *VANCALSTER_OPTIONAL_CLINICAL_UTILITY,
-    *VANCALSTER_OPTIONAL_OVERALL,
-    *VANCALSTER_OPTIONAL_CLASSIFICATION,
+METRIC_TIER_ALL_OPTIONAL: Final[tuple[str, ...]] = (
+    *METRIC_TIER_OPTIONAL_DISCRIMINATION,
+    *METRIC_TIER_OPTIONAL_CALIBRATION,
+    *METRIC_TIER_OPTIONAL_CLINICAL_UTILITY,
+    *METRIC_TIER_OPTIONAL_OVERALL,
+    *METRIC_TIER_OPTIONAL_CLASSIFICATION,
 )
 """All Van Calster OPTIONAL metrics - acceptable for data science."""
 
-VANCALSTER_ALL_CAUTION: Final[tuple[str, ...]] = (
-    *VANCALSTER_CAUTION_DISCRIMINATION,
-    *VANCALSTER_CAUTION_OVERALL,
-    *VANCALSTER_CAUTION_CLASSIFICATION,
+METRIC_TIER_ALL_CAUTION: Final[tuple[str, ...]] = (
+    *METRIC_TIER_CAUTION_DISCRIMINATION,
+    *METRIC_TIER_CAUTION_OVERALL,
+    *METRIC_TIER_CAUTION_CLASSIFICATION,
 )
 """All Van Calster INADVISABLE metrics - use with explicit caveats only."""

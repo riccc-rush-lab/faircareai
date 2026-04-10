@@ -179,7 +179,7 @@ def render_executive_summary(result: Any, audience: str) -> None:
     st.markdown(
         render_status_badge(
             status_type,
-            f"<b>Analysis Complete</b><br><span style='font-size:13px'>{status_desc}</span>",
+            f"<b>Analysis Complete</b><br><span style='font-size:14px'>{status_desc}</span>",
         ),
         unsafe_allow_html=True,
     )
@@ -210,15 +210,16 @@ def render_executive_summary(result: Any, audience: str) -> None:
 
         if audience == "governance":
             metric_name = {
-                "tpr": "detection rate",
-                "fpr": "false alarm rate",
-                "ppv": "positive prediction accuracy",
-            }.get(metric, metric)
+                "tpr": "Detection Rate",
+                "fpr": "False Alarm Rate",
+                "ppv": "Positive Flag Accuracy",
+                "npv": "Negative Flag Accuracy",
+            }.get(metric, metric.upper())
 
             direction = "lower" if value < 0 else "higher"
             st.markdown(
-                f"""<div style="background: #FFF3E0; border-left: 4px solid #E65100; padding: 16px; border-radius: 4px; margin: 16px 0;">
-                <b style="color: #E65100;">Largest Disparity</b><br>
+                f"""<div class="fc-callout-disparity">
+                <b>Largest Disparity</b><br>
                 The model's {metric_name} for <b>{group}</b> patients is <b>{abs(value):.1%}</b> {direction}
                 than the reference group.
                 </div>""",
@@ -226,8 +227,8 @@ def render_executive_summary(result: Any, audience: str) -> None:
             )
         else:
             st.markdown(
-                f"""<div style="background: #FFF3E0; border-left: 4px solid #E65100; padding: 16px; border-radius: 4px; margin: 16px 0;">
-                <b style="color: #E65100;">Largest Disparity</b><br>
+                f"""<div class="fc-callout-disparity">
+                <b>Largest Disparity</b><br>
                 {metric.upper()} for <b>{group}</b>: Δ = {value:+.3f} vs reference
                 </div>""",
                 unsafe_allow_html=True,
@@ -297,9 +298,10 @@ def render_fairness_section(
         selected_metric = selected_metric_value or "tpr"
     else:
         metric_labels: dict[str, str] = {
-            "tpr": "Detection Rate (Sensitivity)",
+            "tpr": "Detection Rate",
             "fpr": "False Alarm Rate",
             "ppv": "Positive Flag Accuracy",
+            "npv": "Negative Flag Accuracy",
         }
         selected_metric_value = st.selectbox(
             "What would you like to examine?",
@@ -405,6 +407,60 @@ def render_fairness_section(
         st.markdown("---")
 
 
+def render_impossibility_callout(result: Any, audience: str) -> None:
+    """Render the Impossibility Theorem callout when disparities exist.
+
+    Per Chouldechova (2017) and Kleinberg et al. (2017), it is mathematically
+    impossible to satisfy all fairness metrics simultaneously when base rates
+    differ between groups. This callout surfaces that insight contextually.
+    """
+    if len(result.disparities_df) == 0:
+        return
+
+    has_flags = result.fail_count > 0 or result.warn_count > 0
+    if not has_flags:
+        return
+
+    render_semantic_heading("Understanding Fairness Trade-offs", level=2, id="impossibility")
+
+    if audience == "governance":
+        st.markdown(
+            """<div class="fc-callout-info">"""
+            """<b>Why can't we make all metrics equal?</b><br><br>"""
+            """Mathematics shows that when different patient groups have different """
+            """underlying rates of a condition, it is <b>impossible</b> to make all """
+            """fairness metrics equal at the same time """
+            """(Chouldechova 2017; Kleinberg et al. 2017).<br><br>"""
+            """This means <b>choosing which fairness metric to prioritize is a """
+            """values decision</b> that your governance team must make based on """
+            """clinical context. For example:<br>"""
+            """<ul>"""
+            """<li>Prioritizing <b>equal Detection Rates</b> means accepting """
+            """different False Alarm Rates between groups</li>"""
+            """<li>Prioritizing <b>equal False Alarm Rates</b> means accepting """
+            """different Detection Rates between groups</li>"""
+            """</ul>"""
+            """Neither choice is wrong — the right choice depends on the clinical """
+            """consequences of each type of error for your patient population."""
+            """</div>""",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            """<div class="fc-callout-info">"""
+            """<b>Impossibility Theorem</b><br><br>"""
+            """Per Chouldechova (2017) and Kleinberg et al. (2017), when base rates """
+            """differ across groups, simultaneously satisfying calibration, """
+            """equalized odds, and predictive parity is mathematically impossible """
+            """(except in degenerate cases).<br><br>"""
+            """<b>Implication:</b> The choice of primary fairness metric is a """
+            """normative decision, not a technical one. Document your metric """
+            """selection rationale in the Fairness Configuration settings."""
+            """</div>""",
+            unsafe_allow_html=True,
+        )
+
+
 def render_analysis_page() -> None:
     """Render the main analysis page."""
     render_skip_link()
@@ -433,13 +489,17 @@ def render_analysis_page() -> None:
     with st.sidebar:
         st.markdown("### Configuration")
 
+        # Read defaults from Settings page (session state), fall back to sensible defaults
+        default_threshold = st.session_state.get("default_threshold", 0.5)
+
         threshold = st.slider(
             "Decision Threshold",
             0.0,
             1.0,
-            0.5,
+            default_threshold,
             0.01,
             help="Classification threshold for binary predictions",
+            key="analysis_threshold",
         )
 
         st.divider()
@@ -461,6 +521,7 @@ def render_analysis_page() -> None:
     render_performance_section(result, df, audience)
     st.markdown("---")
     render_fairness_section(result, df, group_cols, audience)
+    render_impossibility_callout(result, audience)
 
     # Navigation
     st.markdown("---")

@@ -1,4 +1,4 @@
-"""CHAI Applied Model Card (v0.1) generator with XML schema alignment."""
+"""AI model card (v0.1) generator with XML schema alignment."""
 
 from __future__ import annotations
 
@@ -16,13 +16,13 @@ from faircareai.core.results import AuditResults
 
 logger = get_logger(__name__)
 
-CHAI_SCHEMA_VERSION = "v0.1"
-CHAI_SCHEMA_URL = (
+SCHEMA_VERSION = "v0.1"
+SCHEMA_URL = (
     "https://raw.githubusercontent.com/coalition-for-health-ai/mc-schema/main/v0.1/schema.xsd"
 )
-CHAI_TEMPLATE_URL = "https://mc.chai.org/v0.1/documentation.pdf"
-CHAI_SCHEMA_REPO = "https://github.com/coalition-for-health-ai/mc-schema"
-CHAI_NAMESPACE = "https://mc.chai.org/v0.1/schema.xsd"
+MODEL_CARD_TEMPLATE_URL = "https://mc.chai.org/v0.1/documentation.pdf"
+SCHEMA_REPO = "https://github.com/coalition-for-health-ai/mc-schema"
+MODEL_CARD_NAMESPACE = "https://mc.chai.org/v0.1/schema.xsd"
 
 
 def _as_text(value: Any, default: str = "Not specified") -> str:
@@ -135,21 +135,21 @@ def _format_metric_result(pairs: list[tuple[str, Any]]) -> str:
     return "; ".join(formatted) if formatted else "Not specified"
 
 
-def build_chai_model_card_metadata(results: AuditResults) -> dict[str, Any]:
+def build_model_card_metadata(results: AuditResults) -> dict[str, Any]:
     config = results.config
     run_timestamp = results.run_timestamp or config.report_date or "Not specified"
     return {
-        "schema_version": CHAI_SCHEMA_VERSION,
-        "schema_url": CHAI_SCHEMA_REPO,
-        "template_url": CHAI_TEMPLATE_URL,
+        "schema_version": SCHEMA_VERSION,
+        "schema_url": SCHEMA_REPO,
+        "template_url": MODEL_CARD_TEMPLATE_URL,
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "audit_id": results.audit_id,
         "run_timestamp": run_timestamp,
     }
 
 
-def build_chai_model_card_payload(results: AuditResults) -> dict[str, Any]:
-    """Build XSD-aligned payload for CHAI Applied Model Card (v0.1)."""
+def build_model_card_payload(results: AuditResults) -> dict[str, Any]:
+    """Build XSD-aligned payload for AI model card (v0.1)."""
     config = results.config
     overrides = getattr(config, "model_card", {}) or {}
     run_timestamp = results.run_timestamp or config.report_date or "Not specified"
@@ -646,15 +646,15 @@ def build_chai_model_card_payload(results: AuditResults) -> dict[str, Any]:
     return payload
 
 
-def build_chai_model_card_json(results: AuditResults) -> dict[str, Any]:
+def build_model_card_json(results: AuditResults) -> dict[str, Any]:
     return {
-        "metadata": build_chai_model_card_metadata(results),
-        "AppliedModelCard": build_chai_model_card_payload(results),
+        "metadata": build_model_card_metadata(results),
+        "AppliedModelCard": build_model_card_payload(results),
     }
 
 
 def _ns_tag(tag: str) -> str:
-    return f"{{{CHAI_NAMESPACE}}}{tag}"
+    return f"{{{MODEL_CARD_NAMESPACE}}}{tag}"
 
 
 def _add_text(parent: ET.Element, tag: str, value: str | None) -> None:
@@ -664,7 +664,7 @@ def _add_text(parent: ET.Element, tag: str, value: str | None) -> None:
 
 
 def _build_xml(payload: dict[str, Any]) -> bytes:
-    ET.register_namespace("", CHAI_NAMESPACE)
+    ET.register_namespace("", MODEL_CARD_NAMESPACE)
     root = ET.Element(_ns_tag("AppliedModelCard"))
 
     basic = ET.SubElement(root, _ns_tag("BasicInfo"))
@@ -793,30 +793,30 @@ def _validate_xml(xml_bytes: bytes) -> None:
         )
         return
 
-    schema_path = resources.files("faircareai.data").joinpath("chai/v0.1/schema.xsd")
+    schema_path = resources.files("faircareai.data").joinpath("model_card_schema/v0.1/schema.xsd")
     try:
         schema = xmlschema.XMLSchema(str(schema_path))
         schema.validate(BytesIO(xml_bytes))
     except Exception as exc:  # xmlschema raises various errors
         raise ConfigurationError(
-            "chai_model_card",
+            "structured_model_card",
             f"CHAI model card XML failed schema validation: {exc}",
         ) from exc
 
 
-def generate_chai_model_card_xml(results: AuditResults, path: str | Path) -> Path:
-    """Generate a CHAI Applied Model Card XML file (v0.1 schema)."""
+def generate_model_card_xml(results: AuditResults, path: str | Path) -> Path:
+    """Generate a AI model card XML file (v0.1 schema)."""
     path = Path(path)
-    payload = build_chai_model_card_payload(results)
+    payload = build_model_card_payload(results)
     xml_bytes = _build_xml(payload)
     _validate_xml(xml_bytes)
     path.write_bytes(xml_bytes)
     return path
 
 
-def generate_chai_model_card_json(results: AuditResults, path: str | Path) -> Path:
-    """Generate a CHAI Applied Model Card JSON file (debug/reference)."""
+def generate_model_card_json(results: AuditResults, path: str | Path) -> Path:
+    """Generate a AI model card JSON file (debug/reference)."""
     path = Path(path)
-    payload = build_chai_model_card_json(results)
+    payload = build_model_card_json(results)
     path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
     return path

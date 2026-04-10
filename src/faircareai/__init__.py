@@ -9,7 +9,12 @@ Metrics computed per Van Calster et al. (2025) methodology. Healthcare
 organizations interpret results based on their clinical context.
 """
 
-__version__ = "0.2.0"
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("faircareai")
+except PackageNotFoundError:
+    __version__ = "0.0.0-dev"
 
 # Core API - Primary entry points
 from faircareai.core.audit import FairCareAudit
@@ -49,8 +54,29 @@ __all__ = [
 
 
 # Lazy imports to avoid loading heavy dependencies on startup
-def launch() -> None:
-    """Launch the FairCare interactive dashboard."""
-    from faircareai.dashboard.app import launch as _launch
+def launch(port: int = 8501, host: str = "localhost") -> None:
+    """Launch the FairCare interactive dashboard.
 
-    _launch()
+    Args:
+        port: Port number for the Streamlit server (default: 8501).
+        host: Host address to bind to (default: "localhost").
+    """
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    app_path = Path(__file__).parent / "dashboard" / "app.py"
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "streamlit",
+            "run",
+            str(app_path),
+            "--server.port",
+            str(port),
+            "--server.address",
+            host,
+        ],
+        check=True,
+    )

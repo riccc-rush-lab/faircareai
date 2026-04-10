@@ -10,7 +10,7 @@ from faircareai.core.results import AuditResults
 
 
 @pytest.fixture
-def raic_results() -> AuditResults:
+def checklist_results() -> AuditResults:
     config = FairnessConfig(
         model_name="Test Model",
         model_version="1.0.0",
@@ -27,9 +27,9 @@ def raic_results() -> AuditResults:
     return results
 
 
-def test_raic_checklist_full_length(raic_results: AuditResults, tmp_path: Path) -> None:
-    path = tmp_path / "raic_checkpoint_1.json"
-    raic_results.to_raic_checkpoint_1(path)
+def test_regulatory_checklist_full_length(checklist_results: AuditResults, tmp_path: Path) -> None:
+    path = tmp_path / "regulatory_checklist.json"
+    checklist_results.to_regulatory_checklist(path)
     payload = json.loads(path.read_text())
     criteria = payload["criteria"]
     assert len(criteria) == 178

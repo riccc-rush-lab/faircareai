@@ -1,13 +1,13 @@
-"""Model card generator for FairCareAI audits (CHAI Applied Model Card aligned)."""
+"""AI model card generator for FairCareAI audits."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 from faircareai.core.results import AuditResults
-from faircareai.reports.chai_model_card import (
-    build_chai_model_card_metadata,
-    build_chai_model_card_payload,
+from faircareai.reports.structured_model_card import (
+    build_model_card_metadata,
+    build_model_card_payload,
 )
 
 
@@ -43,12 +43,12 @@ def _title_from_camel(text: str) -> str:
 
 
 def generate_model_card_markdown(results: AuditResults, path: str | Path) -> Path:
-    """Generate a CHAI Applied Model Card-aligned Markdown report."""
+    """Generate an AI model card as a Markdown report."""
     path = Path(path)
-    payload = build_chai_model_card_payload(results)
-    metadata = build_chai_model_card_metadata(results)
+    payload = build_model_card_payload(results)
+    metadata = build_model_card_metadata(results)
 
-    lines: list[str] = ["# CHAI Applied Model Card (FairCareAI)", ""]
+    lines: list[str] = ["# AI Model Card (FairCareAI)", ""]
 
     lines += _section_lines(
         "Schema Alignment",

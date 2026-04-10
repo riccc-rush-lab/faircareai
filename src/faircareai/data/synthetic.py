@@ -138,18 +138,20 @@ def generate_icu_mortality_data(
     data["y_true"] = y_true
 
     # Generate model predictions
-    # For a good classifier, positive cases should have higher predictions
-    # We create predictions that center around 0.7 for positives and 0.3 for negatives
-
+    # Realistic clinical model: AUROC ~0.85, imperfect calibration,
+    # meaningful overlap between positive and negative distributions
     y_prob = np.zeros(n_samples, dtype=np.float64)
 
-    # Positive cases: predictions centered around 0.7
+    # Positive cases: predictions centered around 0.60 with wide spread
     pos_mask = y_true == 1
-    y_prob[pos_mask] = rng.normal(0.70, 0.15, pos_mask.sum())
+    y_prob[pos_mask] = rng.normal(0.60, 0.18, pos_mask.sum())
 
-    # Negative cases: predictions centered around 0.25
+    # Negative cases: predictions centered around 0.25 with wide spread
     neg_mask = y_true == 0
-    y_prob[neg_mask] = rng.normal(0.25, 0.12, neg_mask.sum())
+    y_prob[neg_mask] = rng.normal(0.25, 0.16, neg_mask.sum())
+
+    # Add individual-level noise to prevent near-perfect separation
+    y_prob += rng.normal(0, 0.06, n_samples)
 
     # Apply TPR modifiers (shift predictions down for disadvantaged groups)
     for attr, modifiers in tpr_modifiers.items():
@@ -158,7 +160,7 @@ def generate_icu_mortality_data(
             mask = (data[attr] == group) & (y_true == 1)
             if modifier < 1.0:
                 # Shift predictions down, making FN more likely
-                shift = (1.0 - modifier) * 0.4  # Scale the disparity effect
+                shift = (1.0 - modifier) * 0.6  # Scale the disparity effect
                 y_prob[mask] -= shift
 
     # Clip to valid probability range

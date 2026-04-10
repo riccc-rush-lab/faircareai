@@ -121,8 +121,8 @@ def _auto_evaluable_items(results: AuditResults) -> dict[str, dict[str, Any]]:
     return items
 
 
-def _load_raic_criteria() -> list[dict[str, Any]]:
-    data_path = resources.files("faircareai.data").joinpath("raic/checkpoint_1.json")
+def _load_checklist_criteria() -> list[dict[str, Any]]:
+    data_path = resources.files("faircareai.data").joinpath("regulatory_checklist/checkpoint_1.json")
     payload = json.loads(data_path.read_text(encoding="utf-8"))
     criteria = payload.get("criteria", payload)
     if not isinstance(criteria, list):
@@ -130,8 +130,8 @@ def _load_raic_criteria() -> list[dict[str, Any]]:
     return criteria
 
 
-def _load_raic_metadata() -> dict[str, str]:
-    data_path = resources.files("faircareai.data").joinpath("raic/checkpoint_1.json")
+def _load_checklist_metadata() -> dict[str, str]:
+    data_path = resources.files("faircareai.data").joinpath("regulatory_checklist/checkpoint_1.json")
     payload = json.loads(data_path.read_text(encoding="utf-8"))
 
     source_url = payload.get(
@@ -150,14 +150,14 @@ def _load_raic_metadata() -> dict[str, str]:
     }
 
 
-def generate_raic_checkpoint_1_checklist(results: AuditResults, path: str | Path) -> Path:
+def generate_regulatory_checklist(results: AuditResults, path: str | Path) -> Path:
     """Generate a RAIC Checkpoint 1 checklist JSON export."""
     path = Path(path)
     now = datetime.now().astimezone().isoformat(timespec="seconds")
 
     auto_items = _auto_evaluable_items(results)
-    catalog = _load_raic_criteria()
-    metadata = _load_raic_metadata()
+    catalog = _load_checklist_criteria()
+    metadata = _load_checklist_metadata()
     criteria: list[dict[str, Any]] = []
     for item in catalog:
         criteria_id = item.get("id")
@@ -181,7 +181,7 @@ def generate_raic_checkpoint_1_checklist(results: AuditResults, path: str | Path
         criteria.append(entry)
 
     checklist = {
-        "raic_checkpoint": "Checkpoint 1",
+        "checkpoint": "Checkpoint 1",
         "source_url": metadata["source_url"],
         "documentation_url": metadata["documentation_url"],
         "document_version": metadata["document_version"],

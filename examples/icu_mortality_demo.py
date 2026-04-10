@@ -24,8 +24,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from faircareai import FairCareAudit, FairnessConfig
-from faircareai.core.config import FairnessMetric, UseCaseType
+from faircareai import FairCareAudit, FairnessConfig, FairnessMetric, UseCaseType
 from faircareai.data.synthetic import generate_icu_mortality_data, get_data_summary
 
 
@@ -80,11 +79,11 @@ def main():
         threshold=0.5,
     )
 
-    # Accept suggested attributes
+    # Accept suggested attributes (0-based indexing)
     suggestions = audit.suggest_attributes(display=False)
     if suggestions:
         console.print(f"  Detected {len(suggestions)} sensitive attributes")
-        audit.accept_suggested_attributes([1, 2, 3])
+        audit.accept_suggested_attributes([0, 1, 2])
         console.print("  Configured: race_ethnicity, insurance, language")
 
     # Configure

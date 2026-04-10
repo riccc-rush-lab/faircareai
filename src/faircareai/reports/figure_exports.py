@@ -81,11 +81,11 @@ def collect_data_scientist_figures(results: Any, include_optional: bool = False)
     # Optional: Van Calster dashboard when raw audit data is available
     if getattr(results, "_audit", None) is not None:
         try:
-            from faircareai.metrics.vancalster import compute_vancalster_metrics
-            from faircareai.visualization.vancalster_plots import create_vancalster_dashboard
+            from faircareai.metrics.subgroup_performance import compute_subgroup_metrics_suite
+            from faircareai.visualization.subgroup_plots import create_subgroup_dashboard
 
             audit = results._audit
-            vancalster = compute_vancalster_metrics(
+            subgroup_metrics = compute_subgroup_metrics_suite(
                 df=audit.df,
                 y_prob_col=audit.pred_col,
                 y_true_col=audit.target_col,
@@ -93,7 +93,7 @@ def collect_data_scientist_figures(results: Any, include_optional: bool = False)
                 if audit.sensitive_attributes
                 else None,
             )
-            figures["Van Calster Dashboard"] = create_vancalster_dashboard(vancalster)
+            figures["Subgroup Performance Dashboard"] = create_subgroup_dashboard(subgroup_metrics)
         except Exception:
             pass
 

@@ -135,7 +135,7 @@ def to_governance_pdf(self, path: str | Path) -> Path:
 
 ### Van Calster 4 Metrics Implementation
 
-**Code Location:** `src/faircareai/metrics/vancalster.py`
+**Code Location:** `src/faircareai/metrics/subgroup_performance.py`
 
 **Documentation Accuracy:**
 | Metric | Code Function | Documentation | Status |

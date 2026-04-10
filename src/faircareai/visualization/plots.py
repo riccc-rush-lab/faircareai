@@ -536,7 +536,7 @@ def create_forest_plot(
         title=dict(
             text=f"<b>{title}</b>"
             + (
-                f"<br><span style='font-size:14px;color:#666666'>{subtitle}</span>"
+                f"<br><span style='font-size:14px;color:#6B6B6B'>{subtitle}</span>"
                 if subtitle
                 else ""
             ),
@@ -545,7 +545,7 @@ def create_forest_plot(
         xaxis=dict(
             title=dict(text=metric.upper(), font=dict(size=TYPOGRAPHY["axis_title_size"])),
             tickformat=".0%",
-            range=[0, 1.05],
+            range=[0, 1.12],
             showgrid=True,
             gridcolor=SEMANTIC_COLORS["grid"],
             gridwidth=1,
@@ -558,7 +558,7 @@ def create_forest_plot(
         ),
         template="faircareai",
         height=calculate_chart_height(len(df), "forest"),
-        margin=dict(l=220, r=100, t=100, b=140),  # Wide left for long names
+        margin=dict(l=220, r=120, t=100, b=140),  # Wide left for long names, right for labels
         meta={"description": alt_text},  # WCAG 2.1 screen reader support
     )
 
@@ -676,7 +676,7 @@ def create_disparity_heatmap(
 
     fig.update_layout(
         title=dict(
-            text=f"<b>{title}</b><br><span style='font-size:{TYPOGRAPHY['body_size']}px;color:#666'>* indicates statistical significance (p < 0.05)</span>",
+            text=f"<b>{title}</b><br><span style='font-size:{TYPOGRAPHY['body_size']}px;color:#6B6B6B'>* indicates statistical significance (p < 0.05)</span>",
             font=dict(family=TYPOGRAPHY["heading_font"], size=TYPOGRAPHY["subheading_size"]),
         ),
         xaxis=dict(
@@ -827,7 +827,13 @@ def create_metric_comparison_chart(
         if metric in df.columns:
             display_label = get_metric_display_label(metric)
             bar_color = metric_colors.get(metric, GROUP_COLORS[0])
-            metric_values = df[metric].to_list()
+            raw_values = df[metric].to_list()
+            # Convert FPR to Specificity (1-FPR) for display
+            if metric == "fpr":
+                metric_values = [1.0 - v for v in raw_values]
+                display_label = get_metric_display_label("fpr")
+            else:
+                metric_values = raw_values
             fig.add_trace(
                 go.Bar(
                     name=display_label,
@@ -941,7 +947,7 @@ def create_summary_scorecard(
 
     fig.update_layout(
         title=dict(
-            text=f"<b>Equity Audit Summary</b><br><span style='font-size:14px;color:#666666'>{model_name}</span>",
+            text=f"<b>Equity Audit Summary</b><br><span style='font-size:14px;color:#6B6B6B'>{model_name}</span>",
             font=dict(family=TYPOGRAPHY["heading_font"], size=TYPOGRAPHY["heading_size"]),
             x=0,
             xanchor="left",
@@ -1085,7 +1091,7 @@ def create_calibration_plot(
 
     fig.update_layout(
         title=dict(
-            text=f"<b>{title}</b><br><span style='font-size:{TYPOGRAPHY['body_size']}px;color:#666'>{subtitle}</span>",
+            text=f"<b>{title}</b><br><span style='font-size:{TYPOGRAPHY['body_size']}px;color:#6B6B6B'>{subtitle}</span>",
             font=dict(family=TYPOGRAPHY["heading_font"], size=TYPOGRAPHY["subheading_size"]),
         ),
         xaxis=dict(
@@ -1278,23 +1284,25 @@ def create_sample_size_waterfall(
         )
     )
 
-    # Add threshold lines
+    # Add threshold lines (clean, no annotations to avoid overlap)
     fig.add_hline(
         y=ghost_cfg.adequate_threshold,
         line=dict(color=SEMANTIC_COLORS["pass"], width=2, dash="dash"),
-        annotation_text=f"Adequate (n≥{ghost_cfg.adequate_threshold})",
-        annotation_position="top right",
     )
     fig.add_hline(
         y=ghost_cfg.moderate_threshold,
         line=dict(color=SEMANTIC_COLORS["warn_dark"], width=2, dash="dash"),
-        annotation_text=f"Limited (n≥{ghost_cfg.moderate_threshold})",
-        annotation_position="top right",
     )
 
     fig.update_layout(
         title=dict(
-            text=f"<b>{title}</b><br><span style='font-size:14px;color:#666'>Groups below threshold lines have reduced visual weight</span>",
+            text=(
+                f"<b>{title}</b><br>"
+                f"<span style='font-size:14px;color:#6B6B6B'>Groups below threshold lines have reduced visual weight</span><br>"
+                f"<span style='font-size:13px;color:{SEMANTIC_COLORS['pass']}'>--- Adequate (n>={ghost_cfg.adequate_threshold})</span>"
+                f"&nbsp;&nbsp;"
+                f"<span style='font-size:13px;color:{SEMANTIC_COLORS['warn_dark']}'>--- Limited (n>={ghost_cfg.moderate_threshold})</span>"
+            ),
             font=dict(family=TYPOGRAPHY["heading_font"], size=TYPOGRAPHY["subheading_size"]),
         ),
         xaxis=dict(
@@ -1309,7 +1317,7 @@ def create_sample_size_waterfall(
         ),
         template="faircareai",
         height=400,
-        margin=dict(l=80, r=40, t=100, b=160),  # Extra bottom margin for rotated labels
+        margin=dict(l=80, r=80, t=100, b=160),
         showlegend=False,
     )
 
@@ -1360,7 +1368,7 @@ def create_equity_dashboard(
         fig.update_layout(
             title=dict(
                 text="<b>Equity Audit Dashboard</b><br>"
-                "<span style='font-size:12px;color:#666'>Enable include_optional=True for full view</span>",
+                "<span style='font-size:14px;color:#6B6B6B'>Enable include_optional=True for full view</span>",
                 font=dict(family=TYPOGRAPHY["heading_font"], size=TYPOGRAPHY["heading_size"]),
             ),
             template="faircareai",
@@ -1524,9 +1532,51 @@ def create_equity_dashboard(
         )
     )
 
-    # Ensure all subplot axes have explicit font sizing
-    fig.update_xaxes(tickfont=dict(size=TYPOGRAPHY["tick_size"]))
-    fig.update_yaxes(tickfont=dict(size=TYPOGRAPHY["tick_size"]))
+    # Ensure all subplot axes have explicit font sizing and descriptive titles
+    fig.update_xaxes(
+        title_text=metric.upper(),
+        title_font=dict(size=TYPOGRAPHY["axis_title_size"]),
+        tickformat=".0%",
+        tickfont=dict(size=TYPOGRAPHY["tick_size"]),
+        row=1,
+        col=1,
+    )
+    fig.update_yaxes(
+        title_text="Group",
+        title_font=dict(size=TYPOGRAPHY["axis_title_size"]),
+        tickfont=dict(size=TYPOGRAPHY["tick_size"]),
+        row=1,
+        col=1,
+    )
+    fig.update_xaxes(
+        title_text="Group",
+        title_font=dict(size=TYPOGRAPHY["axis_title_size"]),
+        tickfont=dict(size=TYPOGRAPHY["tick_size"]),
+        row=1,
+        col=2,
+    )
+    fig.update_yaxes(
+        title_text="Sample Size (n)",
+        title_font=dict(size=TYPOGRAPHY["axis_title_size"]),
+        tickfont=dict(size=TYPOGRAPHY["tick_size"]),
+        row=1,
+        col=2,
+    )
+    fig.update_xaxes(
+        title_text="Group",
+        title_font=dict(size=TYPOGRAPHY["axis_title_size"]),
+        tickfont=dict(size=TYPOGRAPHY["tick_size"]),
+        row=2,
+        col=2,
+    )
+    fig.update_yaxes(
+        title_text="Disparity from Reference",
+        title_font=dict(size=TYPOGRAPHY["axis_title_size"]),
+        tickformat="+.0%",
+        tickfont=dict(size=TYPOGRAPHY["tick_size"]),
+        row=2,
+        col=2,
+    )
 
     return fig
 
@@ -1761,6 +1811,9 @@ def create_fairness_radar(
     available = [m for m in metrics if m in df.columns]
     labels = [metric_labels[metrics.index(m)] for m in available]
 
+    # Use distinct dash patterns for groups beyond the first few
+    dash_patterns = ["solid", "dash", "dot", "dashdot", "longdash", "longdashdot", "solid"]
+
     for i, row in enumerate(df.iter_rows(named=True)):
         group = row["group"]
         values = [row[m] for m in available]
@@ -1772,8 +1825,13 @@ def create_fairness_radar(
                 theta=labels + [labels[0]],
                 fill="toself",
                 name=group,
-                line=dict(color=GROUP_COLORS[i % len(GROUP_COLORS)], width=2),
-                opacity=0.7,
+                line=dict(
+                    color=GROUP_COLORS[i % len(GROUP_COLORS)],
+                    width=2.5,
+                    dash=dash_patterns[i % len(dash_patterns)],
+                ),
+                opacity=0.4,
+                fillcolor=f"rgba{tuple(list(int(GROUP_COLORS[i % len(GROUP_COLORS)].lstrip('#')[j:j+2], 16) for j in (0, 2, 4)) + [0.08])}",
             )
         )
 
@@ -1787,15 +1845,23 @@ def create_fairness_radar(
                 visible=True,
                 range=[0, 1],
                 tickformat=".0%",
-                tickfont=dict(size=TYPOGRAPHY["tick_size"]),  # Clear ticks
+                tickfont=dict(size=TYPOGRAPHY["tick_size"]),
             ),
             angularaxis=dict(
-                tickfont=dict(size=TYPOGRAPHY["tick_size"]),  # Clear labels
+                tickfont=dict(size=TYPOGRAPHY["tick_size"]),
             ),
         ),
-        legend=LEGEND_POSITIONS["bottom_horizontal"],
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.15,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=TYPOGRAPHY["annotation_size"]),
+        ),
         template="faircareai",
-        height=500,
+        height=600,
+        margin=dict(b=120),
     )
 
     return fig

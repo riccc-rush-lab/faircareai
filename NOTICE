@@ -1,0 +1,40 @@
+FairCareAI
+Copyright 2025 FairCareAI Contributors
+
+This product includes software developed at Rush University Medical Center.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+---
+
+This software implements methodologies described in:
+
+[1] Van Calster B, Collins GS, Vickers AJ, et al. Evaluation of
+    performance measures in predictive artificial intelligence models
+    to support medical decisions. Lancet Digit Health 2025.
+    DOI: 10.1016/j.landig.2025.100916
+
+[2] Coalition for Health AI. RAIC Checkpoint 1: Model Card for
+    Responsible AI in Clinical Practice. Version 1.0. 2024.
+    https://www.coalitionforhealthai.org
+
+[3] Collins GS, Moons KGM, Dhiman P, et al. TRIPOD+AI statement:
+    updated guidance for reporting clinical prediction models that
+    use regression or machine learning methods. BMJ 2024.
+    DOI: 10.1136/bmj-2023-078378
+
+[4] Chouldechova A. Fair prediction with disparate impact: A study
+    of bias in recidivism prediction instruments. Big Data 2017.
+
+[5] Kleinberg J, Mullainathan S, Raghavan M. Inherent trade-offs
+    in the fair determination of risk scores. ITCS 2017.

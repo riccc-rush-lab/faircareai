@@ -153,11 +153,11 @@ src/faircareai/
 │   ├── fairness.py         # Demographic parity, equalized odds
 │   ├── descriptive.py      # Cohort summary (Table 1)
 │   ├── subgroup.py         # Subgroup analysis
-│   └── vancalster.py       # Van Calster (2025) metrics
+│   └── subgroup_performance.py  # Subgroup performance metrics (Van Calster 2025)
 │
 ├── visualization/           # Visualization (10 modules)
 │   ├── plots.py            # Plotly figures
-│   ├── vancalster_plots.py # Forest plots, calibration
+│   ├── subgroup_plots.py   # Forest plots, calibration by subgroup
 │   ├── governance_dashboard.py  # Executive summary
 │   ├── performance_charts.py    # ROC, calibration curves
 │   ├── exporters.py        # PNG/PDF/SVG export
@@ -265,7 +265,7 @@ Four-page workflow:
 
 ---
 
-## Report Structure (7 CHAI-Aligned Sections)
+## Report Structure (7 Governance-Aligned Sections)
 
 ```mermaid
 flowchart LR
@@ -334,7 +334,7 @@ tests/
 ├── test_sensitivity_attrs.py # Demographic detection
 ├── test_input_validation.py # Data validation
 ├── test_exceptions.py       # Error handling
-├── test_vancalster_plots.py # Visualizations
+├── test_subgroup_plots.py   # Subgroup visualizations
 ├── test_plots_viz.py        # Plot generation
 ├── test_exporters.py        # Export formats
 ├── test_themes.py           # Theme configuration

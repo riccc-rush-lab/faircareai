@@ -49,7 +49,7 @@ from faircareai.visualization.governance_dashboard import (
     create_governance_overall_figures,
     create_governance_subgroup_figures
 )
-from faircareai.metrics.vancalster import compute_vancalster_metrics
+from faircareai.metrics.subgroup_performance import compute_subgroup_metrics_suite
 ```
 
 **Status:** All imports successful, no errors.
@@ -177,7 +177,7 @@ Core Van Calster et al. (2025) metrics computation verified:
 
 **API Signature:**
 ```python
-compute_vancalster_metrics(
+compute_subgroup_metrics_suite(
     df: pl.DataFrame,
     y_prob_col: str,
     y_true_col: str,

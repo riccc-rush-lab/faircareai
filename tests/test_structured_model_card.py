@@ -11,7 +11,7 @@ from faircareai.core.results import AuditResults
 
 
 @pytest.fixture
-def chai_results() -> AuditResults:
+def model_card_results() -> AuditResults:
     config = FairnessConfig(
         model_name="Test Model",
         model_version="1.0.0",
@@ -32,9 +32,9 @@ def chai_results() -> AuditResults:
     return results
 
 
-def test_chai_model_card_xml_export(chai_results: AuditResults, tmp_path: Path) -> None:
-    path = tmp_path / "chai_model_card.xml"
-    chai_results.to_chai_model_card(path)
+def test_structured_model_card_xml_export(model_card_results: AuditResults, tmp_path: Path) -> None:
+    path = tmp_path / "model_card.xml"
+    model_card_results.to_structured_model_card(path)
     assert path.exists()
 
     tree = ET.parse(path)
@@ -52,26 +52,26 @@ def test_chai_model_card_xml_export(chai_results: AuditResults, tmp_path: Path) 
     assert root.find("m:Bibliography", ns) is not None
 
 
-def test_chai_model_card_json_export(chai_results: AuditResults, tmp_path: Path) -> None:
-    path = tmp_path / "chai_model_card.json"
-    chai_results.to_chai_model_card_json(path)
+def test_structured_model_card_json_export(model_card_results: AuditResults, tmp_path: Path) -> None:
+    path = tmp_path / "model_card.json"
+    model_card_results.to_structured_model_card_json(path)
     assert path.exists()
     payload = json.loads(path.read_text())
     assert "AppliedModelCard" in payload
     assert "metadata" in payload
 
 
-def test_chai_model_card_xml_validation(chai_results: AuditResults, tmp_path: Path) -> None:
+def test_structured_model_card_xml_validation(model_card_results: AuditResults, tmp_path: Path) -> None:
     xmlschema = pytest.importorskip("xmlschema")
-    path = tmp_path / "chai_model_card.xml"
-    chai_results.to_chai_model_card(path)
+    path = tmp_path / "model_card.xml"
+    model_card_results.to_structured_model_card(path)
 
     schema_path = (
         Path(__file__).resolve().parents[1]
         / "src"
         / "faircareai"
         / "data"
-        / "chai"
+        / "model_card_schema"
         / "v0.1"
         / "schema.xsd"
     )

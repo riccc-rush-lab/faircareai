@@ -18,13 +18,13 @@ import numpy as np
 import polars as pl
 import pytest
 
-from faircareai.metrics.vancalster import (
+from faircareai.metrics.subgroup_performance import (
     AUROC_DIFF_CLINICALLY_MEANINGFUL,
     compute_auroc_by_subgroup,
     compute_calibration_by_subgroup,
     compute_net_benefit_by_subgroup,
     compute_risk_distribution_by_subgroup,
-    compute_vancalster_metrics,
+    compute_subgroup_metrics_suite,
 )
 
 # =============================================================================
@@ -128,16 +128,16 @@ def differential_performance_data() -> pl.DataFrame:
 
 
 # =============================================================================
-# TEST: compute_vancalster_metrics (PRIMARY ENTRY POINT)
+# TEST: compute_subgroup_metrics_suite (PRIMARY ENTRY POINT)
 # =============================================================================
 
 
-class TestComputeVancalsterMetrics:
-    """Tests for the main compute_vancalster_metrics function."""
+class TestComputeSubgroupMetricsSuite:
+    """Tests for the main compute_subgroup_metrics_suite function."""
 
     def test_returns_all_required_keys(self, binary_classification_data: pl.DataFrame) -> None:
         """Should return dict with all required top-level keys."""
-        result = compute_vancalster_metrics(
+        result = compute_subgroup_metrics_suite(
             binary_classification_data,
             y_prob_col="risk_score",
             y_true_col="outcome",
@@ -155,7 +155,7 @@ class TestComputeVancalsterMetrics:
 
     def test_overall_metrics_complete(self, binary_classification_data: pl.DataFrame) -> None:
         """Overall metrics should contain all four Van Calster domains."""
-        result = compute_vancalster_metrics(
+        result = compute_subgroup_metrics_suite(
             binary_classification_data,
             y_prob_col="risk_score",
             y_true_col="outcome",
@@ -170,7 +170,7 @@ class TestComputeVancalsterMetrics:
 
     def test_subgroup_metrics_per_group(self, binary_classification_data: pl.DataFrame) -> None:
         """Should compute metrics for each subgroup."""
-        result = compute_vancalster_metrics(
+        result = compute_subgroup_metrics_suite(
             binary_classification_data,
             y_prob_col="risk_score",
             y_true_col="outcome",
@@ -192,7 +192,7 @@ class TestComputeVancalsterMetrics:
 
     def test_reference_group_identification(self, binary_classification_data: pl.DataFrame) -> None:
         """Should identify largest group as reference by default."""
-        result = compute_vancalster_metrics(
+        result = compute_subgroup_metrics_suite(
             binary_classification_data,
             y_prob_col="risk_score",
             y_true_col="outcome",
@@ -207,7 +207,7 @@ class TestComputeVancalsterMetrics:
 
     def test_custom_reference_group(self, binary_classification_data: pl.DataFrame) -> None:
         """Should allow specifying custom reference group."""
-        result = compute_vancalster_metrics(
+        result = compute_subgroup_metrics_suite(
             binary_classification_data,
             y_prob_col="risk_score",
             y_true_col="outcome",
@@ -221,7 +221,7 @@ class TestComputeVancalsterMetrics:
 
     def test_disparities_computed(self, binary_classification_data: pl.DataFrame) -> None:
         """Should compute disparities vs reference group."""
-        result = compute_vancalster_metrics(
+        result = compute_subgroup_metrics_suite(
             binary_classification_data,
             y_prob_col="risk_score",
             y_true_col="outcome",
@@ -241,7 +241,7 @@ class TestComputeVancalsterMetrics:
 
     def test_bootstrap_ci_computation(self, binary_classification_data: pl.DataFrame) -> None:
         """Should compute bootstrap CIs when requested."""
-        result = compute_vancalster_metrics(
+        result = compute_subgroup_metrics_suite(
             binary_classification_data,
             y_prob_col="risk_score",
             y_true_col="outcome",
@@ -260,7 +260,7 @@ class TestComputeVancalsterMetrics:
 
     def test_without_group_column(self, binary_classification_data: pl.DataFrame) -> None:
         """Should work without subgroup analysis (overall only)."""
-        result = compute_vancalster_metrics(
+        result = compute_subgroup_metrics_suite(
             binary_classification_data,
             y_prob_col="risk_score",
             y_true_col="outcome",
@@ -609,7 +609,7 @@ class TestInterpretation:
 
     def test_interpretation_structure(self, binary_classification_data: pl.DataFrame) -> None:
         """Interpretation should have required structure."""
-        result = compute_vancalster_metrics(
+        result = compute_subgroup_metrics_suite(
             binary_classification_data,
             y_prob_col="risk_score",
             y_true_col="outcome",
@@ -628,7 +628,7 @@ class TestInterpretation:
         self, differential_performance_data: pl.DataFrame
     ) -> None:
         """Should flag findings when performance differs across groups."""
-        result = compute_vancalster_metrics(
+        result = compute_subgroup_metrics_suite(
             differential_performance_data,
             y_prob_col="risk_score",
             y_true_col="outcome",
@@ -682,7 +682,7 @@ class TestEdgeCases:
             }
         )
 
-        result = compute_vancalster_metrics(
+        result = compute_subgroup_metrics_suite(
             small_data,
             y_prob_col="risk_score",
             y_true_col="outcome",

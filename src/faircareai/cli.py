@@ -28,6 +28,15 @@ from faircareai.core.exceptions import (
 console = Console()
 logger = logging.getLogger(__name__)
 
+# Map CLI metric names to FairnessMetric enum values
+_METRIC_MAP = {
+    "equalized_odds": "EQUALIZED_ODDS",
+    "equal_opportunity": "EQUAL_OPPORTUNITY",
+    "demographic_parity": "DEMOGRAPHIC_PARITY",
+    "predictive_parity": "PREDICTIVE_PARITY",
+    "calibration": "CALIBRATION",
+}
+
 
 @click.group()
 @click.version_option(message="%(prog)s %(version)s")
@@ -48,13 +57,11 @@ def main() -> None:
 @main.command()
 @click.option(
     "--port",
-    "-p",
     default=8501,
     help="Port to run the dashboard on (default: 8501)",
 )
 @click.option(
     "--host",
-    "-h",
     default="localhost",
     help="Host to bind to (default: localhost)",
 )
@@ -106,7 +113,7 @@ def dashboard(port: int, host: str) -> None:
 @click.argument("data_path", type=click.Path(exists=True, path_type=Path))
 @click.option(
     "--pred-col",
-    "-p",
+    "-P",
     required=True,
     help="Column name for model predictions/probabilities",
 )
@@ -133,16 +140,16 @@ def dashboard(port: int, host: str) -> None:
             "json",
             "png",
             "model-card",
-            "chai-model-card",
-            "chai-model-card-json",
-            "raic-checklist",
+            "ai-model-card",
+            "ai-model-card-json",
+            "regulatory-checklist",
             "repro-bundle",
         ],
         case_sensitive=False,
     ),
     help=(
-        "Output format (html, pdf, pptx, json, png, model-card, chai-model-card, "
-        "chai-model-card-json, raic-checklist, repro-bundle). "
+        "Output format (html, pdf, pptx, json, png, model-card, ai-model-card, "
+        "ai-model-card-json, regulatory-checklist, repro-bundle). "
         "Overrides file suffix if provided."
     ),
 )
@@ -177,6 +184,15 @@ def dashboard(port: int, host: str) -> None:
     help="Name of the model being audited",
 )
 @click.option(
+    "--metric",
+    "-m",
+    "fairness_metric",
+    type=click.Choice(list(_METRIC_MAP.keys()), case_sensitive=False),
+    default="equalized_odds",
+    show_default=True,
+    help="Primary fairness metric for the audit.",
+)
+@click.option(
     "--attributes",
     "-a",
     multiple=True,
@@ -194,6 +210,7 @@ def audit(
     attributes: tuple[str, ...],
     persona: str,
     include_optional: bool,
+    fairness_metric: str,
 ) -> None:
     """Run a fairness audit on model predictions.
 
@@ -202,8 +219,9 @@ def audit(
 
     \b
     Example:
-        faircareai audit predictions.parquet -p risk_score -t outcome -o report.html
-        faircareai audit data.csv -p prob -t label -a race -a sex
+        faircareai audit predictions.parquet -P risk_score -t outcome -o report.html
+        faircareai audit data.csv -P prob -t label -a race -a sex
+        faircareai audit data.csv -P prob -t label -m calibration
 
     \b
     Methodology: Van Calster et al. (2025), CHAI RAIC Checkpoint 1.
@@ -216,9 +234,16 @@ def audit(
     if output:
         output = output.expanduser().resolve()
 
+    # Resolve the fairness metric enum
+    metric_enum_name = _METRIC_MAP[fairness_metric.lower()]
+    metric_enum = FairnessMetric[metric_enum_name]
+
     console.print(
         Panel.fit(
-            f"[bold blue]FairCareAI Audit[/bold blue]\nData: {data_path}\nModel: {model_name}",
+            f"[bold blue]FairCareAI Audit[/bold blue]\n"
+            f"Data: {data_path}\n"
+            f"Model: {model_name}\n"
+            f"Metric: {fairness_metric}",
             border_style="blue",
         )
     )
@@ -256,11 +281,17 @@ def audit(
         console.print("\n[bold]Detecting sensitive attributes...[/bold]")
         suggestions = audit_obj.suggest_attributes(display=False)
         if suggestions:
+            n_accept = min(3, len(suggestions))
+            accepted_names = [s["suggested_name"] for s in suggestions[:n_accept]]
             console.print(f"  Found {len(suggestions)} suggested attributes")
-            # Auto-accept first 3 suggestions for CLI
-            indices: list[int | str] = list(range(1, min(4, len(suggestions) + 1)))
+            console.print(
+                f"  [yellow]Auto-accepting first {n_accept}:[/yellow] {accepted_names}"
+            )
+            console.print(
+                "  [dim]Use -a flag to specify attributes explicitly.[/dim]"
+            )
+            indices: list[int | str] = list(range(n_accept))
             audit_obj.accept_suggested_attributes(indices)
-            console.print(f"  Accepted: {[s['suggested_name'] for s in suggestions[:3]]}")
         else:
             console.print("[yellow]No sensitive attributes detected. Add with -a flag.[/yellow]")
             sys.exit(1)
@@ -269,9 +300,10 @@ def audit(
     console.print("\n[bold]Configuring audit...[/bold]")
     audit_obj.config = FairnessConfig(
         model_name=model_name,
-        primary_fairness_metric=FairnessMetric.EQUALIZED_ODDS,
+        primary_fairness_metric=metric_enum,
         fairness_justification=(
-            "Default CLI audit using equalized odds. Review and adjust based on clinical context."
+            f"CLI audit using {fairness_metric}. "
+            "Review and adjust based on clinical context."
         ),
     )
 
@@ -317,9 +349,9 @@ def audit(
         fmt_ext: str | None
         if fmt == "model-card":
             fmt_ext = "md"
-        elif fmt == "chai-model-card":
+        elif fmt == "ai-model-card":
             fmt_ext = "xml"
-        elif fmt in {"chai-model-card-json", "raic-checklist"}:
+        elif fmt in {"ai-model-card-json", "regulatory-checklist"}:
             fmt_ext = "json"
         elif fmt == "png":
             fmt_ext = "zip"
@@ -345,7 +377,7 @@ def audit(
             if inferred in {"md", "markdown"}:
                 fmt = "model-card"
             elif inferred == "xml":
-                fmt = "chai-model-card"
+                fmt = "ai-model-card"
             else:
                 fmt = inferred
 
@@ -384,12 +416,12 @@ def audit(
                 )
             elif fmt == "model-card":
                 results.to_model_card(str(output_path))
-            elif fmt == "chai-model-card":
-                results.to_chai_model_card(str(output_path))
-            elif fmt == "chai-model-card-json":
-                results.to_chai_model_card_json(str(output_path))
-            elif fmt == "raic-checklist":
-                results.to_raic_checkpoint_1(str(output_path))
+            elif fmt == "ai-model-card":
+                results.to_structured_model_card(str(output_path))
+            elif fmt == "ai-model-card-json":
+                results.to_structured_model_card_json(str(output_path))
+            elif fmt == "regulatory-checklist":
+                results.to_regulatory_checklist(str(output_path))
             elif fmt == "repro-bundle":
                 results.to_reproducibility_bundle(str(output_path))
             else:
@@ -427,7 +459,7 @@ def version() -> None:
         Panel.fit(
             f"[bold blue]FairCareAI[/bold blue] v{__version__}\n\n"
             "Healthcare AI Fairness Auditing\n"
-            "CHAI-aligned governance framework\n\n"
+            "Responsible AI governance framework\n\n"
             "[dim]Package SUGGESTS, humans DECIDE[/dim]",
             border_style="blue",
         )

@@ -4,16 +4,16 @@ build-backend = "hatchling.build"
 
 [project]
 name = "faircareai"
-version = "0.2.0"
-description = "Healthcare AI Fairness Auditing - CHAI-aligned governance for clinical ML models"
+version = "0.2.1"
+description = "Healthcare AI Fairness Auditing — responsible AI governance for clinical ML models"
 readme = "README.md"
-license = "MIT"
+license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [
-    { name = "FairCareAI Contributors" }
+    { name = "FairCareAI Contributors", email = "juan_rojas@rush.edu" }
 ]
 maintainers = [
-    { name = "FairCareAI Contributors" }
+    { name = "FairCareAI Contributors", email = "juan_rojas@rush.edu" }
 ]
 keywords = [
     "healthcare",
@@ -23,14 +23,14 @@ keywords = [
     "audit",
     "bias",
     "equity",
-    "CHAI",
+    "responsible-ai",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Healthcare Industry",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",

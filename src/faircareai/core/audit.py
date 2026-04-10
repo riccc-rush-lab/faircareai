@@ -388,7 +388,10 @@ class FairCareAudit:
         Accept suggested sensitive attributes.
 
         Args:
-            selections: Indices (1-based) or names of suggestions to accept.
+            selections: 0-based indices (Python convention) or names of
+                suggestions to accept. Legacy 1-based indices are also
+                supported: if all integer indices are >= 1 and none are 0,
+                they are interpreted as 1-based for backward compatibility.
             modify: Overrides for accepted suggestions, e.g.
                     {"race": {"reference": "Black"}}
 
@@ -397,14 +400,34 @@ class FairCareAudit:
         """
         modify = modify or {}
 
+        # Detect indexing convention: if any integer index is 0 the caller
+        # is using 0-based (Python convention).  If all integers are >= 1,
+        # assume legacy 1-based indexing for backward compatibility.
+        int_indices = [s for s in selections if isinstance(s, int)]
+        zero_based = any(i == 0 for i in int_indices)
+
         for sel in selections:
             # Find the suggestion
             if isinstance(sel, int):
-                if 1 <= sel <= len(self._suggestions):
+                if zero_based:
+                    # 0-based indexing (Python convention)
+                    if 0 <= sel < len(self._suggestions):
+                        suggestion = self._suggestions[sel]
+                    else:
+                        raise ConfigurationError(
+                            "selection",
+                            f"Invalid index: {sel}. "
+                            f"Valid: 0-{len(self._suggestions) - 1}",
+                        )
+                elif 1 <= sel <= len(self._suggestions):
+                    # Legacy 1-based indexing
                     suggestion = self._suggestions[sel - 1]
                 else:
                     raise ConfigurationError(
-                        "selection", f"Invalid index: {sel}. Valid: 1-{len(self._suggestions)}"
+                        "selection",
+                        f"Invalid index: {sel}. "
+                        f"Valid: 0-{len(self._suggestions) - 1} (0-based) "
+                        f"or 1-{len(self._suggestions)} (1-based)",
                     )
             else:
                 matches = [s for s in self._suggestions if s["suggested_name"] == sel]
@@ -615,7 +638,7 @@ class FairCareAudit:
                 "sensitive_attributes",
                 "At least one sensitive attribute required.\n"
                 "Use audit.suggest_attributes() to see suggestions, then:\n"
-                "  audit.accept_suggested_attributes([1, 2])",
+                "  audit.accept_suggested_attributes([0, 1])",
             )
 
         # Warn about non-errors
@@ -810,7 +833,7 @@ class FairCareAudit:
         category: str,
         message: str,
         details: str,
-        chai_criteria: str | None = None,
+        criteria_ref: str | None = None,
         **kwargs: Any,
     ) -> dict:
         """Build a standardized flag dictionary.
@@ -823,7 +846,7 @@ class FairCareAudit:
             category: Category of the flag (e.g., "sample_size", "fairness").
             message: Short summary message for the flag.
             details: Detailed explanation of the issue.
-            chai_criteria: Optional CHAI criteria reference (e.g., "AC1.CR82").
+            criteria_ref: Optional CHAI criteria reference (e.g., "AC1.CR82").
             **kwargs: Additional context fields (attribute, group, metric, value, threshold).
 
         Returns:
@@ -836,8 +859,8 @@ class FairCareAudit:
             "details": details,
             **kwargs,
         }
-        if chai_criteria:
-            flag["chai_criteria"] = chai_criteria
+        if criteria_ref:
+            flag["criteria_ref"] = criteria_ref
         return flag
 
     def _generate_flags(self, results: AuditResults) -> list[dict]:
@@ -887,7 +910,7 @@ class FairCareAudit:
                                 f"Small sample size may lead to unstable estimates "
                                 f"for {attr_name}:{group}"
                             ),
-                            chai_criteria="AC1.CR82",
+                            criteria_ref="AC1.CR82",
                             attribute=attr_name,
                             group=group,
                         )
@@ -926,7 +949,7 @@ class FairCareAudit:
                                     f"Selection rates differ significantly between "
                                     f"{group} and reference"
                                 ),
-                                chai_criteria="AC1.CR92",
+                                criteria_ref="AC1.CR92",
                                 metric="demographic_parity",
                                 attribute=attr_name,
                                 group=group,
@@ -948,7 +971,7 @@ class FairCareAudit:
                                 details=(
                                     f"TPR/FPR differs significantly between {group} and reference"
                                 ),
-                                chai_criteria="AC1.CR92",
+                                criteria_ref="AC1.CR92",
                                 metric="equalized_odds",
                                 attribute=attr_name,
                                 group=group,
@@ -981,7 +1004,7 @@ class FairCareAudit:
                         category="data_quality",
                         message=f"Missing rate {missing_rate:.1%} > {max_missing:.0%}",
                         details=(f"High missing data for {attr_name} may bias fairness estimates"),
-                        chai_criteria="AC1.CR68",
+                        criteria_ref="AC1.CR68",
                         attribute=attr_name,
                         value=missing_rate,
                         threshold=max_missing,
@@ -1017,9 +1040,9 @@ class FairCareAudit:
             status = "READY"
             advisory = "No significant issues detected at current thresholds."
 
-        # CHAI governance disclaimer
+        # Governance disclaimer
         disclaimer = (
-            "This is CHAI-grounded guidance. Final deployment decisions "
+            "This is evidence-based guidance. Final deployment decisions "
             "rest with clinical stakeholders and governance committees."
         )
 

@@ -607,23 +607,23 @@ class AuditResults:
 
         return generate_model_card_markdown(self, path)
 
-    def to_chai_model_card(self, path: str | Path) -> Path:
-        """Export a CHAI Applied Model Card-aligned XML file (v0.1 schema)."""
-        from faircareai.reports.chai_model_card import generate_chai_model_card_xml
+    def to_structured_model_card(self, path: str | Path) -> Path:
+        """Export an AI model card as XML (v0.1 schema)."""
+        from faircareai.reports.structured_model_card import generate_model_card_xml
 
-        return generate_chai_model_card_xml(self, path)
+        return generate_model_card_xml(self, path)
 
-    def to_chai_model_card_json(self, path: str | Path) -> Path:
-        """Export a CHAI Applied Model Card-aligned JSON file (debug/reference)."""
-        from faircareai.reports.chai_model_card import generate_chai_model_card_json
+    def to_structured_model_card_json(self, path: str | Path) -> Path:
+        """Export an AI model card as JSON (debug/reference)."""
+        from faircareai.reports.structured_model_card import generate_model_card_json
 
-        return generate_chai_model_card_json(self, path)
+        return generate_model_card_json(self, path)
 
-    def to_raic_checkpoint_1(self, path: str | Path) -> Path:
-        """Export a RAIC Checkpoint 1 checklist JSON file."""
-        from faircareai.reports.raic_checklist import generate_raic_checkpoint_1_checklist
+    def to_regulatory_checklist(self, path: str | Path) -> Path:
+        """Export a regulatory checklist JSON file."""
+        from faircareai.reports.regulatory_checklist import generate_regulatory_checklist
 
-        return generate_raic_checkpoint_1_checklist(self, path)
+        return generate_regulatory_checklist(self, path)
 
     def to_png(
         self,

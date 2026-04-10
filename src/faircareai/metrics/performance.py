@@ -27,7 +27,7 @@ USE_WITH_CAUTION (improper measures - use with explicit caveats only):
   - DOR (Diagnostic Odds Ratio), Kappa
   - AUPRC, partial AUROC (mix statistical with decision-analytical)
 
-See constants.py for VANCALSTER_* classification constants.
+See constants.py for METRIC_TIER_* classification constants.
 """
 
 import warnings

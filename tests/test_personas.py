@@ -785,26 +785,26 @@ class TestPersonaTerminology:
         assert "Risk" in gov_cal[0] or "Predicted" in gov_cal[0]
 
 
-class TestVanCalsterPriorityOrdering:
+class TestMetricPriorityOrdering:
     """Tests for Van Calster priority ordering of OPTIONAL metrics."""
 
     def test_optional_priority_list_exists(self) -> None:
-        """Test that VANCALSTER_OPTIONAL_PRIORITY list exists and has correct items."""
-        from faircareai.core.config import VANCALSTER_OPTIONAL_PRIORITY
+        """Test that METRIC_OPTIONAL_PRIORITY list exists and has correct items."""
+        from faircareai.core.config import METRIC_OPTIONAL_PRIORITY
 
-        assert isinstance(VANCALSTER_OPTIONAL_PRIORITY, list)
-        assert len(VANCALSTER_OPTIONAL_PRIORITY) > 0
+        assert isinstance(METRIC_OPTIONAL_PRIORITY, list)
+        assert len(METRIC_OPTIONAL_PRIORITY) > 0
 
         # Brier score should be highest priority (first)
-        assert VANCALSTER_OPTIONAL_PRIORITY[0] == "brier_score"
+        assert METRIC_OPTIONAL_PRIORITY[0] == "brier_score"
 
         # Required OPTIONAL metrics should be present
-        assert "oe_ratio" in VANCALSTER_OPTIONAL_PRIORITY
-        assert "ici" in VANCALSTER_OPTIONAL_PRIORITY
-        assert "sensitivity" in VANCALSTER_OPTIONAL_PRIORITY
-        assert "specificity" in VANCALSTER_OPTIONAL_PRIORITY
-        assert "ppv" in VANCALSTER_OPTIONAL_PRIORITY
-        assert "npv" in VANCALSTER_OPTIONAL_PRIORITY
+        assert "oe_ratio" in METRIC_OPTIONAL_PRIORITY
+        assert "ici" in METRIC_OPTIONAL_PRIORITY
+        assert "sensitivity" in METRIC_OPTIONAL_PRIORITY
+        assert "specificity" in METRIC_OPTIONAL_PRIORITY
+        assert "ppv" in METRIC_OPTIONAL_PRIORITY
+        assert "npv" in METRIC_OPTIONAL_PRIORITY
 
     def test_sort_metrics_by_priority_correct_order(self) -> None:
         """Test that sort_metrics_by_priority returns correct order."""

@@ -100,6 +100,54 @@ ACCESSIBILITY_CSS = """
     outline: 3px solid #0072B2;
     outline-offset: 2px;
 }
+
+/* ============================== */
+/* Reusable callout/alert classes */
+/* ============================== */
+
+/* Disparity callout (warning-level) */
+.fc-callout-disparity {
+    background: #FFEBE5;
+    border-left: 4px solid #D55E00;
+    padding: 16px;
+    border-radius: 4px;
+    margin: 16px 0;
+}
+.fc-callout-disparity b {
+    color: #D55E00;
+}
+
+/* Informational callout (primary blue) */
+.fc-callout-info {
+    background: #E3F2FD;
+    border-left: 4px solid #0072B2;
+    padding: 16px;
+    border-radius: 4px;
+    margin: 16px 0;
+}
+.fc-callout-info b {
+    color: #0072B2;
+}
+
+/* Neutral finding item */
+.fc-finding {
+    padding: 12px 16px;
+    margin: 8px 0;
+    border-left: 4px solid #6B6B6B;
+    background: #FAFAFA;
+}
+.fc-finding--positive { border-left-color: #009E73; }
+.fc-finding--concern  { border-left-color: #D55E00; }
+
+/* High contrast overrides */
+@media (prefers-contrast: high) {
+    .fc-callout-disparity,
+    .fc-callout-info,
+    .fc-finding {
+        border-left-width: 6px !important;
+        border: 2px solid currentColor !important;
+    }
+}
 </style>
 """
 

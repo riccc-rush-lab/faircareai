@@ -145,7 +145,7 @@ def run_legacy_app() -> None:
         # Accept all detected attributes for demo
         for i, attr in enumerate(audit._suggestions):
             if attr["column"] in group_cols:
-                audit.accept_suggested_attributes([i])
+                audit.accept_suggested_attributes([i])  # 0-based
         result = audit.run()
         return result, audit
 
@@ -189,7 +189,9 @@ def run_legacy_app() -> None:
         )
 
         st.divider()
-        st.caption("FairCareAI v0.2.0")
+        from faircareai import __version__
+
+        st.caption(f"FairCareAI v{__version__}")
 
     # Load data
     if data_source == "Demo: ICU Mortality":

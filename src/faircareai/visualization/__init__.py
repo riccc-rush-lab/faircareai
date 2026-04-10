@@ -32,12 +32,12 @@ from faircareai.visualization.themes import (
     get_plotly_template,
     register_plotly_template,
 )
-from faircareai.visualization.vancalster_plots import (
+from faircareai.visualization.subgroup_plots import (
     create_auroc_forest_plot,
     create_calibration_plot_by_subgroup,
     create_decision_curve_by_subgroup,
     create_risk_distribution_plot,
-    create_vancalster_dashboard,
+    create_subgroup_dashboard,
 )
 
 __all__ = [
@@ -53,7 +53,7 @@ __all__ = [
     "create_calibration_plot_by_subgroup",
     "create_decision_curve_by_subgroup",
     "create_risk_distribution_plot",
-    "create_vancalster_dashboard",
+    "create_subgroup_dashboard",
     # Export utilities
     "export_plotly_figure",
     "export_altair_chart",

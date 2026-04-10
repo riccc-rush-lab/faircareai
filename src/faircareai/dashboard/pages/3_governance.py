@@ -89,10 +89,11 @@ def render_key_findings(result: Any) -> None:
         group, metric, value = result.worst_disparity
 
         metric_plain = {
-            "tpr": "detection rate",
-            "fpr": "false alarm rate",
-            "ppv": "positive prediction accuracy",
-        }.get(metric, metric)
+            "tpr": "Detection Rate",
+            "fpr": "False Alarm Rate",
+            "ppv": "Positive Flag Accuracy",
+            "npv": "Negative Flag Accuracy",
+        }.get(metric, metric.upper())
 
         direction = "lower" if value < 0 else "higher"
 
@@ -125,14 +126,13 @@ def render_key_findings(result: Any) -> None:
 
     # Render findings
     for finding in findings:
-        color = {
-            "positive": "#009E73",
-            "neutral": "#666666",
-            "concern": "#E65100",
-        }.get(finding["type"], "#666666")
+        modifier = {
+            "positive": " fc-finding--positive",
+            "concern": " fc-finding--concern",
+        }.get(finding["type"], "")
 
         st.markdown(
-            f"""<div style="padding: 12px 16px; margin: 8px 0; border-left: 4px solid {color}; background: #FAFAFA;">
+            f"""<div class="fc-finding{modifier}">
             {finding["text"]}
             </div>""",
             unsafe_allow_html=True,
@@ -162,7 +162,7 @@ def render_metrics_table(result: Any, audience: str) -> None:
                 "n": "Sample Size",
                 "tpr": "Detection Rate",
                 "fpr": "False Alarm Rate",
-                "ppv": "Flag Accuracy",
+                "ppv": "Positive Flag Accuracy",
             }
         else:
             columns = [
@@ -279,6 +279,28 @@ def render_sign_off_section(result: Any) -> None:
     # Decision buttons
     st.markdown("---")
 
+    def _record_decision(decision: str) -> dict:
+        """Record a governance decision and return the sign-off record."""
+        checklist_status = {label: st.session_state.get(f"signoff_{key}", False)
+                           for key, label in checks}
+        record = {
+            "decision": decision,
+            "reviewer": reviewer_name,
+            "role": reviewer_role,
+            "comments": comments,
+            "timestamp": datetime.now().isoformat(),
+            "model_name": getattr(result, "model_name", "Unknown"),
+            "checklist": checklist_status,
+        }
+        # Store in session state for export functions to pick up
+        st.session_state["governance_decision"] = decision
+        st.session_state["governance_reviewer"] = reviewer_name
+        st.session_state["governance_role"] = reviewer_role
+        st.session_state["governance_comments"] = comments
+        st.session_state["governance_timestamp"] = record["timestamp"]
+        st.session_state["governance_signoff_record"] = record
+        return record
+
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -288,11 +310,7 @@ def render_sign_off_section(result: Any) -> None:
             disabled=not all_checked or not reviewer_name,
             use_container_width=True,
         ):
-            st.session_state["governance_decision"] = "approved"
-            st.session_state["governance_reviewer"] = reviewer_name
-            st.session_state["governance_role"] = reviewer_role
-            st.session_state["governance_comments"] = comments
-            st.session_state["governance_timestamp"] = datetime.now().isoformat()
+            _record_decision("approved")
             announce_status_change("Deployment approved")
             st.success("Decision recorded: APPROVED FOR DEPLOYMENT")
 
@@ -303,11 +321,7 @@ def render_sign_off_section(result: Any) -> None:
             disabled=not reviewer_name,
             use_container_width=True,
         ):
-            st.session_state["governance_decision"] = "changes_requested"
-            st.session_state["governance_reviewer"] = reviewer_name
-            st.session_state["governance_role"] = reviewer_role
-            st.session_state["governance_comments"] = comments
-            st.session_state["governance_timestamp"] = datetime.now().isoformat()
+            _record_decision("changes_requested")
             announce_status_change("Changes requested")
             st.warning("Decision recorded: CHANGES REQUESTED")
 
@@ -318,21 +332,33 @@ def render_sign_off_section(result: Any) -> None:
             disabled=not reviewer_name,
             use_container_width=True,
         ):
-            st.session_state["governance_decision"] = "rejected"
-            st.session_state["governance_reviewer"] = reviewer_name
-            st.session_state["governance_role"] = reviewer_role
-            st.session_state["governance_comments"] = comments
-            st.session_state["governance_timestamp"] = datetime.now().isoformat()
+            _record_decision("rejected")
             announce_status_change("Deployment rejected", priority="assertive")
             st.error("Decision recorded: REJECTED")
 
+    # Downloadable sign-off record (persists the decision outside session state)
+    if "governance_signoff_record" in st.session_state:
+        import json
+
+        record = st.session_state["governance_signoff_record"]
+        record_json = json.dumps(record, indent=2, default=str)
+        ts = record["timestamp"].replace(":", "").replace("-", "")[:15]
+        st.download_button(
+            label="Download Sign-Off Record (JSON)",
+            data=record_json,
+            file_name=f"faircareai_signoff_{ts}.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+
 
 def render_export_section(result: Any) -> None:
-    """Render export options section."""
+    """Render export options section organized into categorized tabs."""
     render_semantic_heading("Export Report", level=2, id="export")
 
     st.markdown("""
     Generate a formal governance report for your records.
+    Choose a category below to find the export format you need.
     """)
 
     def _safe_filename(base: str, suffix: str) -> str:
@@ -349,9 +375,9 @@ def render_export_section(result: Any) -> None:
         base_name = model_name.model_name if model_name is not None else "faircareai_report"
         if fmt == "model-card":
             suffix = "md"
-        elif fmt == "chai-model-card":
+        elif fmt == "ai-model-card":
             suffix = "xml"
-        elif fmt in {"chai-model-card-json", "raic-checklist"}:
+        elif fmt in {"ai-model-card-json", "regulatory-checklist"}:
             suffix = "json"
         elif fmt == "png":
             suffix = "zip"
@@ -378,14 +404,14 @@ def render_export_section(result: Any) -> None:
             if fmt == "model-card":
                 result.to_model_card(str(out_path))
                 return out_path.read_bytes(), filename
-            if fmt == "chai-model-card":
-                result.to_chai_model_card(str(out_path))
+            if fmt == "ai-model-card":
+                result.to_structured_model_card(str(out_path))
                 return out_path.read_bytes(), filename
-            if fmt == "chai-model-card-json":
-                result.to_chai_model_card_json(str(out_path))
+            if fmt == "ai-model-card-json":
+                result.to_structured_model_card_json(str(out_path))
                 return out_path.read_bytes(), filename
-            if fmt == "raic-checklist":
-                result.to_raic_checkpoint_1(str(out_path))
+            if fmt == "regulatory-checklist":
+                result.to_regulatory_checklist(str(out_path))
                 return out_path.read_bytes(), filename
             if fmt == "repro-bundle":
                 result.to_reproducibility_bundle(str(out_path))
@@ -395,142 +421,93 @@ def render_export_section(result: Any) -> None:
                 return out_path.read_bytes(), filename
         raise RuntimeError("Failed to generate report")
 
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        if st.button("Generate HTML Report", use_container_width=True):
+    def _export_button(
+        label: str,
+        fmt: str,
+        mime: str,
+        *,
+        spinner_msg: str | None = None,
+        install_hint: str | None = None,
+        custom_builder: Any = None,
+    ) -> None:
+        """Render a generate + download button pair for one export format."""
+        if st.button(label, use_container_width=True, key=f"export_{fmt}"):
             try:
-                with st.spinner("Generating HTML report..."):
-                    html_bytes, filename = _build_report_bytes("html")
+                with st.spinner(spinner_msg or f"Generating {fmt}..."):
+                    if custom_builder is not None:
+                        data_bytes, filename = custom_builder()
+                    else:
+                        data_bytes, filename = _build_report_bytes(fmt)
                 st.download_button(
-                    label="Download HTML",
-                    data=html_bytes,
+                    label=f"Download {filename}",
+                    data=data_bytes,
                     file_name=filename,
-                    mime="text/html",
+                    mime=mime,
                     use_container_width=True,
-                )
-            except Exception as e:
-                st.error(f"HTML export failed: {e}")
-
-    with col2:
-        if st.button("Generate PDF Report", use_container_width=True):
-            try:
-                with st.spinner("Generating PDF report..."):
-                    pdf_bytes, filename = _build_report_bytes("pdf")
-                st.download_button(
-                    label="Download PDF",
-                    data=pdf_bytes,
-                    file_name=filename,
-                    mime="application/pdf",
-                    use_container_width=True,
+                    key=f"dl_{fmt}",
                 )
             except ImportError:
-                st.info(
+                if install_hint:
+                    st.info(install_hint)
+                else:
+                    st.info('Install export dependencies: `pip install "faircareai[export]"`.')
+            except Exception as e:
+                st.error(f"Export failed: {e}")
+
+    # --- Tabbed export layout ---
+    tab_reports, tab_technical, tab_compliance = st.tabs(
+        ["Governance Reports", "Technical Exports", "Compliance Artifacts"]
+    )
+
+    # Tab 1: Governance Reports (HTML, PDF, PPTX)
+    with tab_reports:
+        st.markdown("Ready-to-share reports for governance committees and stakeholders.")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            _export_button(
+                "HTML Report",
+                "html",
+                "text/html",
+                spinner_msg="Generating HTML report...",
+            )
+        with col2:
+            _export_button(
+                "PDF Report",
+                "pdf",
+                "application/pdf",
+                spinner_msg="Generating PDF report...",
+                install_hint=(
                     'Install export dependencies: `pip install "faircareai[export]"` '
                     "and `python -m playwright install chromium`."
-                )
-            except Exception as e:
-                st.error(f"PDF export failed: {e}")
+                ),
+            )
+        with col3:
+            _export_button(
+                "PowerPoint Deck",
+                "pptx",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                spinner_msg="Generating PowerPoint deck...",
+            )
 
-    with col3:
-        if st.button("Generate PPTX Deck", use_container_width=True):
-            try:
-                with st.spinner("Generating PowerPoint deck..."):
-                    pptx_bytes, filename = _build_report_bytes("pptx")
-                st.download_button(
-                    label="Download PPTX",
-                    data=pptx_bytes,
-                    file_name=filename,
-                    mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                    use_container_width=True,
-                )
-            except ImportError:
-                st.info('Install export dependencies: `pip install "faircareai[export]"`.')
-            except Exception as e:
-                st.error(f"PPTX export failed: {e}")
+    # Tab 2: Technical Exports (JSON, PNG bundles, Reproducibility)
+    with tab_technical:
+        st.markdown("Data exports and figure bundles for data science teams.")
+        col1, col2 = st.columns(2)
+        with col1:
+            _export_button(
+                "JSON Data Export",
+                "json",
+                "application/json",
+            )
+            _export_button(
+                "PNG Figure Bundle (Governance)",
+                "png",
+                "application/zip",
+                spinner_msg="Generating PNG figures...",
+            )
+        with col2:
 
-        st.markdown("---")
-        if st.button("Download JSON Data", use_container_width=True):
-            try:
-                json_bytes, filename = _build_report_bytes("json")
-                st.download_button(
-                    label="Download JSON",
-                    data=json_bytes,
-                    file_name=filename,
-                    mime="application/json",
-                    use_container_width=True,
-                )
-            except Exception as e:
-                st.error(f"JSON export failed: {e}")
-
-        if st.button("Download Model Card (MD)", use_container_width=True):
-            try:
-                md_bytes, filename = _build_report_bytes("model-card")
-                st.download_button(
-                    label="Download Model Card",
-                    data=md_bytes,
-                    file_name=filename,
-                    mime="text/markdown",
-                    use_container_width=True,
-                )
-            except Exception as e:
-                st.error(f"Model card export failed: {e}")
-
-        if st.button("Download CHAI Model Card (XML)", use_container_width=True):
-            try:
-                xml_bytes, filename = _build_report_bytes("chai-model-card")
-                st.download_button(
-                    label="Download CHAI Model Card",
-                    data=xml_bytes,
-                    file_name=filename,
-                    mime="application/xml",
-                    use_container_width=True,
-                )
-            except Exception as e:
-                st.error(f"CHAI model card export failed: {e}")
-
-        if st.button("Download CHAI Model Card (JSON)", use_container_width=True):
-            try:
-                json_bytes, filename = _build_report_bytes("chai-model-card-json")
-                st.download_button(
-                    label="Download CHAI Model Card (JSON)",
-                    data=json_bytes,
-                    file_name=filename,
-                    mime="application/json",
-                    use_container_width=True,
-                )
-            except Exception as e:
-                st.error(f"CHAI model card JSON export failed: {e}")
-
-        if st.button("Download RAIC Checklist (JSON)", use_container_width=True):
-            try:
-                json_bytes, filename = _build_report_bytes("raic-checklist")
-                st.download_button(
-                    label="Download RAIC Checklist",
-                    data=json_bytes,
-                    file_name=filename,
-                    mime="application/json",
-                    use_container_width=True,
-                )
-            except Exception as e:
-                st.error(f"RAIC checklist export failed: {e}")
-
-        if st.button("Download PNG Bundle", use_container_width=True):
-            try:
-                png_bytes, filename = _build_report_bytes("png")
-                st.download_button(
-                    label="Download PNG Bundle",
-                    data=png_bytes,
-                    file_name=filename,
-                    mime="application/zip",
-                    use_container_width=True,
-                )
-            except Exception as e:
-                st.error(f"PNG export failed: {e}")
-
-        if st.button("Download Data Scientist PNG Bundle", use_container_width=True):
-            try:
-                # Regenerate with data scientist persona + optional metrics
+            def _build_ds_png() -> tuple[bytes, str]:
                 with tempfile.TemporaryDirectory() as tmpdir:
                     out_path = Path(tmpdir) / "faircareai_figures_data_scientist.zip"
                     result.to_png(
@@ -538,29 +515,47 @@ def render_export_section(result: Any) -> None:
                         persona="data_scientist",
                         include_optional=True,
                     )
-                    png_bytes = out_path.read_bytes()
-                st.download_button(
-                    label="Download Data Scientist PNGs",
-                    data=png_bytes,
-                    file_name="faircareai_figures_data_scientist.zip",
-                    mime="application/zip",
-                    use_container_width=True,
-                )
-            except Exception as e:
-                st.error(f"Data scientist PNG export failed: {e}")
+                    return out_path.read_bytes(), "faircareai_figures_data_scientist.zip"
 
-        if st.button("Download Reproducibility Bundle", use_container_width=True):
-            try:
-                repro_bytes, filename = _build_report_bytes("repro-bundle")
-                st.download_button(
-                    label="Download Reproducibility Bundle",
-                    data=repro_bytes,
-                    file_name=filename,
-                    mime="application/json",
-                    use_container_width=True,
-                )
-            except Exception as e:
-                st.error(f"Reproducibility export failed: {e}")
+            _export_button(
+                "PNG Figure Bundle (Data Scientist)",
+                "png-ds",
+                "application/zip",
+                spinner_msg="Generating data scientist figures...",
+                custom_builder=_build_ds_png,
+            )
+            _export_button(
+                "Reproducibility Bundle",
+                "repro-bundle",
+                "application/json",
+            )
+
+    # Tab 3: Compliance Artifacts
+    with tab_compliance:
+        st.markdown("Standards-aligned governance artifacts for responsible AI compliance.")
+        col1, col2 = st.columns(2)
+        with col1:
+            _export_button(
+                "Model Card (Markdown)",
+                "model-card",
+                "text/markdown",
+            )
+            _export_button(
+                "AI Model Card (XML)",
+                "ai-model-card",
+                "application/xml",
+            )
+            _export_button(
+                "AI Model Card (JSON)",
+                "ai-model-card-json",
+                "application/json",
+            )
+        with col2:
+            _export_button(
+                "RAIC Checklist (JSON)",
+                "regulatory-checklist",
+                "application/json",
+            )
 
 
 def render_governance_page() -> None:
@@ -569,7 +564,7 @@ def render_governance_page() -> None:
 
     # Check for audit result
     if "audit_result" not in st.session_state:
-        st.warning("No audit results available. Please run an analysis first.")
+        st.warning("No analysis results available. Please complete the analysis first.")
         if st.button("Go to Analysis"):
             st.switch_page("pages/2_analysis.py")
         return

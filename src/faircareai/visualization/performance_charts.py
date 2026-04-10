@@ -130,11 +130,11 @@ def plot_discrimination_curves(
 
     # Update ROC axes with persona-appropriate labels
     if persona == OutputPersona.GOVERNANCE:
-        x_axis_text = "False Alarm Rate (% without condition incorrectly flagged)"
-        y_axis_text = "Detection Rate (% with condition correctly identified)"
+        x_axis_text = "False Alarm Rate"
+        y_axis_text = "Detection Rate"
     else:
-        x_axis_text = x_label or "False Positive Rate (% without outcome incorrectly flagged)"
-        y_axis_text = y_label or "True Positive Rate (% with outcome correctly identified)"
+        x_axis_text = x_label or "1 - Specificity (False Positive Rate)"
+        y_axis_text = y_label or "Sensitivity (True Positive Rate)"
 
     fig.update_xaxes(
         title_text=x_axis_text,
@@ -225,9 +225,10 @@ def plot_discrimination_curves(
             x=0,
             xanchor="left",
         ),
-        height=450,
+        height=500,
         showlegend=True,
-        legend=LEGEND_POSITIONS["bottom_horizontal"],
+        legend=LEGEND_POSITIONS["top_horizontal"],
+        margin=dict(b=80),
         meta={"description": alt_text},  # WCAG 2.1 screen reader support
     )
     return fig
@@ -452,6 +453,12 @@ def plot_threshold_analysis(
             x=0.5,
             y=0.5,
             showarrow=False,
+            font=dict(size=TYPOGRAPHY["annotation_size"], color=FAIRCAREAI_COLORS["gray"]),
+        )
+        fig = apply_faircareai_theme(fig)
+        fig.update_layout(
+            title=dict(text="Threshold Selection Impact", x=0, xanchor="left"),
+            height=300,
         )
         return fig
 
@@ -462,7 +469,7 @@ def plot_threshold_analysis(
             "Classification Metrics by Threshold",
             "Percentage of Patients Flagged",
         ),
-        vertical_spacing=0.15,
+        vertical_spacing=0.22,
         row_heights=[0.65, 0.35],
     )
 
@@ -535,9 +542,16 @@ def plot_threshold_analysis(
     fig = apply_faircareai_theme(fig)
     fig.update_layout(
         title=dict(text="Threshold Selection Impact", x=0, xanchor="left"),
-        height=600,
+        height=650,
         showlegend=True,
-        legend=LEGEND_POSITIONS["top_horizontal"],
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="left",
+            x=0,
+        ),
+        margin=dict(t=100),
         meta={"description": alt_text},  # WCAG 2.1 screen reader support
     )
 
@@ -580,41 +594,57 @@ def plot_decision_curve(
 
     fig = go.Figure()
 
+    if not thresholds:
+        fig.add_annotation(
+            text="No decision curve data available",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(size=TYPOGRAPHY["annotation_size"], color=FAIRCAREAI_COLORS["gray"]),
+        )
+        fig = apply_faircareai_theme(fig)
+        fig.update_layout(
+            title=dict(text="Decision Curve Analysis", x=0, xanchor="left"),
+            height=500,
+        )
+        return fig
+
     # Net benefit curves
-    if thresholds:
-        # Model
-        fig.add_trace(
-            go.Scatter(
-                x=thresholds,
-                y=nb_model,
-                mode="lines",
-                name="Model",
-                line=dict(color=FAIRCAREAI_COLORS["primary"], width=2.5),
-                hovertemplate="Net Benefit: %{y:.3f}<br>Threshold: %{x:.2f}<extra></extra>",
-            )
+    # Model
+    fig.add_trace(
+        go.Scatter(
+            x=thresholds,
+            y=nb_model,
+            mode="lines",
+            name="Model",
+            line=dict(color=FAIRCAREAI_COLORS["primary"], width=2.5),
+            hovertemplate="Net Benefit: %{y:.3f}<br>Threshold: %{x:.2f}<extra></extra>",
         )
+    )
 
-        # Treat All
-        fig.add_trace(
-            go.Scatter(
-                x=thresholds,
-                y=nb_all,
-                mode="lines",
-                name="Treat All",
-                line=dict(color=FAIRCAREAI_COLORS["warning"], width=2, dash="dash"),
-            )
+    # Treat All
+    fig.add_trace(
+        go.Scatter(
+            x=thresholds,
+            y=nb_all,
+            mode="lines",
+            name="Treat All",
+            line=dict(color=FAIRCAREAI_COLORS["warning"], width=2, dash="dash"),
         )
+    )
 
-        # Treat None
-        fig.add_trace(
-            go.Scatter(
-                x=thresholds,
-                y=nb_none,
-                mode="lines",
-                name="Treat None",
-                line=dict(color=FAIRCAREAI_COLORS["gray"], width=2, dash="dot"),
-            )
+    # Treat None
+    fig.add_trace(
+        go.Scatter(
+            x=thresholds,
+            y=nb_none,
+            mode="lines",
+            name="Treat None",
+            line=dict(color=FAIRCAREAI_COLORS["gray"], width=2, dash="dot"),
         )
+    )
 
     # Shade useful range
     if useful_range.get("min") is not None and useful_range.get("max") is not None:
@@ -657,6 +687,8 @@ def plot_decision_curve(
         yaxis_title=y_axis_title,
         height=500,
         xaxis=dict(range=[0, 1], tickformat=".0%"),
+        yaxis=dict(range=[min(-0.1, min(nb_model) * 1.1 if nb_model else -0.5), max(nb_model) * 1.3 if nb_model else 0.5]),
+        margin=dict(r=80),
         meta={"description": alt_text},  # WCAG 2.1 screen reader support
     )
 
@@ -672,7 +704,9 @@ def plot_decision_curve(
         xref="paper",
         yref="paper",
         x=0.98,
-        y=0.98,
+        y=0.02,
+        xanchor="right",
+        yanchor="bottom",
         showarrow=False,
         font=dict(size=TYPOGRAPHY["annotation_size"]),
         align="left",
@@ -702,6 +736,24 @@ def plot_confusion_matrix(results: AuditResults) -> go.Figure:
     tn, fp = matrix[0]
     fn, tp = matrix[1]
     total = tn + fp + fn + tp
+
+    if total == 0:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No confusion matrix data available (empty dataset)",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(size=TYPOGRAPHY["annotation_size"], color=FAIRCAREAI_COLORS["gray"]),
+        )
+        fig = apply_faircareai_theme(fig)
+        fig.update_layout(
+            title=dict(text="Confusion Matrix", x=0, xanchor="left"),
+            height=400,
+        )
+        return fig
 
     # Create text annotations
     text = [

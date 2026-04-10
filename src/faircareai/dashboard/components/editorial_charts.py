@@ -51,7 +51,7 @@ def create_editorial_layout(
     layout["title"] = {
         "text": f"<b>{title}</b>"
         + (
-            f"<br><span style='font-size:{TYPOGRAPHY['deck_size']}px;color:#666666;font-weight:400;'>{subtitle}</span>"
+            f"<br><span style='font-size:{TYPOGRAPHY['deck_size']}px;color:#6B6B6B;font-weight:400;'>{subtitle}</span>"
             if subtitle
             else ""
         ),
@@ -83,7 +83,7 @@ def create_editorial_layout(
                 "yanchor": "top",
                 "font": {
                     "size": TYPOGRAPHY["source_size"],
-                    "color": "#999999",
+                    "color": "#9B9A97",
                 },
             }
         ]
@@ -165,29 +165,29 @@ def add_editorial_annotations(
             "showarrow": True,
             "arrowhead": 0,
             "arrowwidth": 1,
-            "arrowcolor": "#999999",
+            "arrowcolor": "#9B9A97",
         },
         "label": {
             "bgcolor": "rgba(255,255,255,0.9)",
             "borderpad": 4,
-            "font": {"size": TYPOGRAPHY["annotation_size"], "color": "#666666"},
+            "font": {"size": TYPOGRAPHY["annotation_size"], "color": "#6B6B6B"},
             "showarrow": False,
         },
         "reference": {
             "bgcolor": "transparent",
-            "font": {"size": TYPOGRAPHY["annotation_size"], "color": "#999999", "style": "italic"},
+            "font": {"size": TYPOGRAPHY["annotation_size"], "color": "#9B9A97", "style": "italic"},
             "showarrow": False,
         },
         "highlight": {
-            "bgcolor": "#FFE0B2",
-            "bordercolor": "#E65100",
+            "bgcolor": "#FFEBE5",
+            "bordercolor": "#D55E00",
             "borderwidth": 1,
             "borderpad": 6,
-            "font": {"size": TYPOGRAPHY["callout_size"], "color": "#E65100", "weight": 600},
+            "font": {"size": TYPOGRAPHY["callout_size"], "color": "#D55E00", "weight": 600},
             "showarrow": True,
             "arrowhead": 2,
             "arrowwidth": 2,
-            "arrowcolor": "#E65100",
+            "arrowcolor": "#D55E00",
         },
     }
 
@@ -544,7 +544,7 @@ def create_scorecard_figure(
             go.Indicator(
                 mode="number",
                 value=val,
-                title={"text": cat, "font": {"size": 14, "color": "#666666"}},
+                title={"text": cat, "font": {"size": 14, "color": "#6B6B6B"}},
                 number={"font": {"size": 48, "color": color}},
                 domain={"x": [i / 3, (i + 1) / 3], "y": [0, 1]},
             )

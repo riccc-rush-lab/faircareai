@@ -63,7 +63,7 @@ def create_executive_summary(results: "AuditResults") -> go.Figure:
             [{"colspan": 3, "type": "table"}, None, None],
         ],
         row_heights=[0.3, 0.35, 0.35],
-        vertical_spacing=0.08,
+        vertical_spacing=0.12,
         subplot_titles=(
             "",
             "Model Performance",
@@ -109,7 +109,7 @@ def create_executive_summary(results: "AuditResults") -> go.Figure:
                 bar=dict(color=perf_color),
                 bgcolor="white",
                 borderwidth=2,
-                bordercolor="gray",
+                bordercolor="#CCCCCC",
                 steps=[
                     {"range": [0.5, 0.7], "color": COLORSCALES["gauge_steps"]["error"]},
                     {"range": [0.7, 0.8], "color": COLORSCALES["gauge_steps"]["warning"]},
@@ -148,7 +148,7 @@ def create_executive_summary(results: "AuditResults") -> go.Figure:
                 bar=dict(color=fairness_color),
                 bgcolor="white",
                 borderwidth=2,
-                bordercolor="gray",
+                bordercolor="#CCCCCC",
                 steps=[
                     {"range": [0, 40], "color": COLORSCALES["gauge_steps"]["error"]},
                     {"range": [40, 70], "color": COLORSCALES["gauge_steps"]["warning"]},
@@ -183,7 +183,7 @@ def create_executive_summary(results: "AuditResults") -> go.Figure:
                 bar=dict(color=dq_color),
                 bgcolor="white",
                 borderwidth=2,
-                bordercolor="gray",
+                bordercolor="#CCCCCC",
                 steps=[
                     {"range": [0, 40], "color": COLORSCALES["gauge_steps"]["error"]},
                     {"range": [40, 70], "color": COLORSCALES["gauge_steps"]["warning"]},
@@ -203,7 +203,7 @@ def create_executive_summary(results: "AuditResults") -> go.Figure:
             header=dict(
                 values=["<b>Finding</b>", "<b>Status</b>", "<b>Observation</b>"],
                 fill_color=FAIRCAREAI_COLORS["primary"],
-                font=dict(color="white", size=12),
+                font=dict(color="white", size=14),
                 align="left",
             ),
             cells=dict(
@@ -640,7 +640,7 @@ def create_fairness_dashboard(results: "AuditResults") -> go.Figure:
             row=1,
             col=1,
         )
-        fig.add_hline(y=0.7, line_dash="dash", line_color="red", row=1, col=1)
+        fig.add_hline(y=0.7, line_dash="dash", line_color="#D55E00", row=1, col=1)
         fig.update_yaxes(range=[0.5, 1], row=1, col=1)
 
     # === Panel 2: Selection Rate by Subgroup ===
@@ -736,7 +736,7 @@ def create_fairness_dashboard(results: "AuditResults") -> go.Figure:
             row=2,
             col=1,
         )
-        fig.add_hline(y=0.1, line_dash="dash", line_color="green", row=2, col=1)
+        fig.add_hline(y=0.1, line_dash="dash", line_color="#009E73", row=2, col=1)
         fig.update_yaxes(title_text="Absolute Disparity", row=2, col=1)
 
     # === Panel 4: Overall Summary ===
@@ -1051,7 +1051,7 @@ def create_governance_overall_figures(results: "AuditResults") -> dict[str, Any]
                 bar=dict(color=auroc_color),
                 bgcolor="white",
                 borderwidth=2,
-                bordercolor="gray",
+                bordercolor="#CCCCCC",
                 steps=[
                     {"range": [0.5, 0.7], "color": "#ffebee"},
                     {"range": [0.7, 0.8], "color": "#fff3e0"},
@@ -1079,7 +1079,7 @@ def create_governance_overall_figures(results: "AuditResults") -> dict[str, Any]
             x=[0, 1],
             y=[0, 1],
             mode="lines",
-            line=dict(dash="dash", color="gray"),
+            line=dict(dash="dash", color="#CCCCCC"),
             name="Perfect Calibration",
             showlegend=True,
         )
@@ -1147,8 +1147,8 @@ def create_governance_overall_figures(results: "AuditResults") -> dict[str, Any]
             tickformat=".0%",
         ),
         height=400,
-        margin=dict(l=80, r=40, t=90, b=80),
-        legend=dict(x=0.02, y=0.98, font=dict(size=14)),
+        margin=dict(l=80, r=40, t=100, b=80),
+        legend=dict(x=0.55, y=0.98, bgcolor="rgba(255,255,255,0.9)", font=dict(size=14)),
         annotations=[
             dict(
                 text=f"<b>Slope: {slope:.2f}</b> ({slope_status})",
@@ -1184,7 +1184,7 @@ def create_governance_overall_figures(results: "AuditResults") -> dict[str, Any]
                 bar=dict(color=brier_color),
                 bgcolor="white",
                 borderwidth=2,
-                bordercolor="gray",
+                bordercolor="#CCCCCC",
                 steps=[
                     {"range": [0, 0.15], "color": "#e8f5e9"},
                     {"range": [0.15, 0.25], "color": "#fff3e0"},
@@ -1243,6 +1243,8 @@ def create_governance_overall_figures(results: "AuditResults") -> dict[str, Any]
         height=400,
         margin=dict(l=80, r=40, t=90, b=80),
         showlegend=False,
+        uniformtext_minsize=14,
+        uniformtext_mode="hide",
     )
     figures["Classification"] = fig_class
 
@@ -1393,12 +1395,14 @@ def create_governance_subgroup_figures(
         figures["Sensitivity by Subgroup"] = fig_tpr
 
         # 3. FPR by Subgroup - Equalized Odds
+        fpr_pcts = [v * 100 for v in fpr_vals]
+        fpr_y_max = max(max(fpr_pcts) * 1.5, 10) if fpr_pcts else 50
         fig_fpr = _create_subgroup_bar_chart(
             groups,
-            [v * 100 for v in fpr_vals],
+            fpr_pcts,
             colors,
             "False Alarms: % Incorrectly Flagged by Group",
-            y_range=[0, 50],
+            y_range=[0, fpr_y_max],
             y_suffix="%",
             threshold_line=None,
             explanation=SUBGROUP_EXPLANATIONS["fpr"],
@@ -1471,14 +1475,22 @@ def _create_subgroup_bar_chart(
     else:
         text_vals = [f"<b>{v:.2f}</b>" for v in values]
 
+    # Use outside text for small bars (max value < 20% of range)
+    max_val = max(values) if values else 0
+    y_max = y_range[1] if y_range else max_val * 1.2
+    use_outside = max_val < y_max * 0.25
+
     fig.add_trace(
         go.Bar(
             x=groups,
             y=values,
             marker_color=colors,
             text=text_vals,
-            textposition="inside",
-            textfont=dict(color=[get_contrast_text_color(c) for c in colors], size=12),
+            textposition="outside" if use_outside else "inside",
+            textfont=dict(
+                color=["#333333"] * len(colors) if use_outside else [get_contrast_text_color(c) for c in colors],
+                size=14,
+            ),
         )
     )
 
@@ -1498,7 +1510,7 @@ def _create_subgroup_bar_chart(
 
     # Add visual highlighting for primary metric
     if is_primary_metric:
-        title_text = f"<b>{title}</b><br><span style='font-size:12px; color:#0072B2;'>★ YOUR SELECTED FAIRNESS METRIC</span>"
+        title_text = f"<b>{title}</b><br><span style='font-size:14px; color:#0072B2;'>★ YOUR SELECTED FAIRNESS METRIC</span>"
         plot_bgcolor = "rgba(0, 114, 178, 0.05)"  # Light blue background
     else:
         title_text = f"<b>{title}</b>"
@@ -1516,22 +1528,24 @@ def _create_subgroup_bar_chart(
         ),
         xaxis=dict(
             title=x_axis_title,
-            tickfont={"size": 12},
+            tickfont={"size": 14},
             tickangle=-55,  # Steeper angle to prevent category label overlap
-            title_font=dict(size=13),
+            title_font=dict(size=14),
             automargin=True,  # Auto-adjust margin for labels
         ),
         yaxis=dict(
             title=y_axis_title,
             range=y_range,
             ticksuffix=y_suffix,
-            tickfont={"size": 13},
-            title_font=dict(size=13),
+            tickfont={"size": 14},
+            title_font=dict(size=14),
         ),
         height=400,  # More breathing room for labels and title
         margin=dict(l=112, r=48, t=120, b=196),  # Added padding for labels and static PNG export
         showlegend=False,
         plot_bgcolor=plot_bgcolor,
+        uniformtext_minsize=14,
+        uniformtext_mode="hide",
     )
 
     return fig
@@ -1573,7 +1587,7 @@ def create_governance_roc_curve(results: "AuditResults") -> go.Figure | None:
             x=[0, 1],
             y=[0, 1],
             mode="lines",
-            line=dict(color="gray", dash="dash", width=2),
+            line=dict(color="#CCCCCC", dash="dash", width=2),
             name="Random Guessing (AUC=0.50)",
             showlegend=True,
         )
@@ -1616,7 +1630,7 @@ def create_governance_roc_curve(results: "AuditResults") -> go.Figure | None:
             tickfont={"size": 14},
         ),
         height=450,
-        margin=dict(l=90, r=40, t=70, b=90),
+        margin=dict(l=90, r=40, t=100, b=90),
         legend=dict(x=0.6, y=0.15, bgcolor="rgba(255,255,255,0.9)", font=dict(size=14)),
         showlegend=True,
     )
@@ -1703,8 +1717,8 @@ def create_governance_probability_distribution(results: "AuditResults") -> go.Fi
         ),
         barmode="overlay",
         height=450,
-        margin=dict(l=90, r=40, t=70, b=90),
-        legend=dict(x=0.02, y=0.98, bgcolor="rgba(255,255,255,0.9)", font=dict(size=14)),
+        margin=dict(l=90, r=40, t=100, b=90),
+        legend=dict(x=0.55, y=0.98, bgcolor="rgba(255,255,255,0.9)", font=dict(size=14)),
         showlegend=True,
     )
 

@@ -9,11 +9,11 @@ import plotly.graph_objects as go
 if TYPE_CHECKING:
     pass
 
-# Import Van Calster constants from core.constants
+# Import metric tier constants from core.constants
 from faircareai.core.constants import (
-    VANCALSTER_ALL_CAUTION,
-    VANCALSTER_ALL_OPTIONAL,
-    VANCALSTER_ALL_RECOMMENDED,
+    METRIC_TIER_ALL_CAUTION,
+    METRIC_TIER_ALL_OPTIONAL,
+    METRIC_TIER_ALL_RECOMMENDED,
 )
 
 # Import theming constants
@@ -38,11 +38,11 @@ def get_metric_category(metric: str) -> str:
         "CAUTION"
     """
     metric_lower = metric.lower()
-    if metric_lower in VANCALSTER_ALL_RECOMMENDED:
+    if metric_lower in METRIC_TIER_ALL_RECOMMENDED:
         return "RECOMMENDED"
-    if metric_lower in VANCALSTER_ALL_OPTIONAL:
+    if metric_lower in METRIC_TIER_ALL_OPTIONAL:
         return "OPTIONAL"
-    if metric_lower in VANCALSTER_ALL_CAUTION:
+    if metric_lower in METRIC_TIER_ALL_CAUTION:
         return "CAUTION"
     return "UNKNOWN"
 

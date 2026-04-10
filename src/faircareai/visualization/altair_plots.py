@@ -139,6 +139,6 @@ def create_icon_array(
 
     return f'''<svg width="260" height="300">
         <text x="5" y="20" font-family="{TYPOGRAPHY["heading_font"]}" font-weight="bold">{title}</text>
-        <text x="5" y="35" font-size="12" font-family="{TYPOGRAPHY["data_font"]}">{affected} of {total} affected</text>
+        <text x="5" y="35" font-size="14" font-family="{TYPOGRAPHY["data_font"]}">{affected} of {total} affected</text>
         {"".join(icons)}
     </svg>'''

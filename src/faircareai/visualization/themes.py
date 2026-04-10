@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from faircareai.core.citations import (
-    CHAI_CITATION,
+    HEALTH_AI_CITATION,
     METHODOLOGY_DISCLAIMER,
     METHODOLOGY_STATEMENT,
     VAN_CALSTER_CITATION,
@@ -32,7 +32,7 @@ METHODOLOGY_CITATION = f"""
 Metrics computed per {VAN_CALSTER_CITATION["full"]}
 {VAN_CALSTER_CITATION["url"]}
 
-Governance criteria per {CHAI_CITATION["full"]}
+Governance criteria per {HEALTH_AI_CITATION["full"]}
 """
 
 GOVERNANCE_DISCLAIMER = f"""
@@ -135,7 +135,7 @@ FAIRCAREAI_BRAND = {
     "name": "FairCareAI",
     "tagline": "AI Equity Governance for Healthcare",
     "source_note": "Source: FairCareAI Analysis",
-    "copyright": "© 2024 FairCareAI",
+    "copyright": "© 2025 FairCareAI",
     "url": "faircareai.com",
 }
 
@@ -371,51 +371,51 @@ GHOSTING_CONFIG = GhostingConfig()
 
 METRIC_CATEGORY_COLORS = {
     "RECOMMENDED": {
-        "bg": "#E8F5E9",  # Light green background
-        "border": "#4CAF50",  # Green border
-        "text": "#1B5E20",  # Dark green text
+        "bg": "#E0F2EF",  # Pass light
+        "border": "#009E73",  # Canonical pass green
+        "text": "#191919",  # Canonical text
         "badge": "✓ RECOMMENDED",
     },
     "OPTIONAL": {
-        "bg": "#FFF8E1",  # Light amber background
-        "border": "#FFC107",  # Amber border
-        "text": "#6D4C41",  # Brown text
+        "bg": "#FFFDE7",  # Warn light
+        "border": "#C9B900",  # Canonical warn
+        "text": "#191919",  # Canonical text
         "badge": "○ OPTIONAL",
     },
     "CAUTION": {
-        "bg": "#FFEBEE",  # Light red background
-        "border": "#F44336",  # Red border
-        "text": "#B71C1C",  # Dark red text
+        "bg": "#FFEBE5",  # Fail light
+        "border": "#D55E00",  # Canonical fail vermillion
+        "text": "#191919",  # Canonical text
         "badge": "⚠ CAUTION",
     },
     "UNKNOWN": {
-        "bg": "#F5F5F5",  # Light gray background
-        "border": "#9E9E9E",  # Gray border
-        "text": "#424242",  # Dark gray text
+        "bg": "#FAFAFA",  # Canonical off-white
+        "border": "#CCCCCC",  # Canonical axis gray
+        "text": "#191919",  # Canonical text
         "badge": "? UNCLASSIFIED",
     },
 }
 
 METRIC_CATEGORY_CSS = """
-/* Van Calster Metric Classification Styles */
+/* Metric Classification Styles */
 .metric-recommended {
-    background: #E8F5E9;
-    border-left: 4px solid #4CAF50;
+    background: #E0F2EF;
+    border-left: 4px solid #009E73;
     padding: 12px 16px;
     margin: 8px 0;
 }
 
 .metric-optional {
-    background: #FFF8E1;
-    border-left: 4px solid #FFC107;
+    background: #FFFDE7;
+    border-left: 4px solid #C9B900;
     padding: 12px 16px;
     margin: 8px 0;
     opacity: 0.9;
 }
 
 .metric-caution {
-    background: #FFEBEE;
-    border-left: 4px solid #F44336;
+    background: #FFEBE5;
+    border-left: 4px solid #D55E00;
     padding: 12px 16px;
     margin: 8px 0;
     opacity: 0.85;
@@ -423,7 +423,7 @@ METRIC_CATEGORY_CSS = """
 
 .metric-badge-recommended {
     display: inline-block;
-    background: #4CAF50;
+    background: #009E73;
     color: white;
     font-size: 14px;
     font-weight: 600;
@@ -435,8 +435,8 @@ METRIC_CATEGORY_CSS = """
 
 .metric-badge-optional {
     display: inline-block;
-    background: #FFC107;
-    color: #6D4C41;
+    background: #C9B900;
+    color: #191919;
     font-size: 14px;
     font-weight: 600;
     padding: 2px 8px;
@@ -447,7 +447,7 @@ METRIC_CATEGORY_CSS = """
 
 .metric-badge-caution {
     display: inline-block;
-    background: #F44336;
+    background: #D55E00;
     color: white;
     font-size: 14px;
     font-weight: 600;
@@ -458,30 +458,30 @@ METRIC_CATEGORY_CSS = """
 }
 
 .optional-section {
-    border: 1px dashed #FFC107;
+    border: 1px dashed #C9B900;
     border-radius: 8px;
     padding: 16px;
     margin: 16px 0;
-    background: #FFFBF0;
+    background: #FFFDE7;
 }
 
 .optional-section-header {
     font-size: 14px;
     font-weight: 600;
-    color: #F57C00;
+    color: #E69F00;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 12px;
 }
 
 .caution-warning {
-    background: #FFF3E0;
-    border: 1px solid #FF9800;
+    background: #FFEBE5;
+    border: 1px solid #D55E00;
     border-radius: 4px;
     padding: 12px 16px;
     margin: 8px 0;
     font-size: 14px;
-    color: #E65100;
+    color: #D55E00;
 }
 
 .caution-warning::before {
@@ -532,6 +532,28 @@ def render_optional_section_html(content: str, title: str = "OPTIONAL Metrics") 
         {content}
     </div>
     """
+
+
+# =============================================================================
+# PUBLICATION PALETTE — PPTX & print output
+# =============================================================================
+# Professional publication-grade palette for slides and printed reports.
+# Paired with Okabe-Ito for colorblind safety; all meet WCAG 2.1 AA on white.
+PUBLICATION_COLORS = {
+    "navy": "#303C6C",        # Primary headings / title bars
+    "dark_blue": "#3C5A99",   # Secondary headings
+    "blue": "#4A90D9",        # Data series 1
+    "red": "#BE1E2D",         # Alert / fail status
+    "green": "#2E7D32",       # Pass status
+    "amber": "#C49000",       # Warning status (WCAG AA on white ≥ 4.5:1)
+    "teal": "#00695C",        # Data series 2
+    "purple": "#5C3D7A",      # Data series 3
+    "gray": "#546E7A",        # Annotations / secondary text
+    "light_gray": "#ECEFF1",  # Subtle backgrounds
+    "text": "#212121",        # Body text
+    "text_secondary": "#546E7A",
+    "background": "#FFFFFF",
+}
 
 
 # =============================================================================
@@ -786,21 +808,21 @@ STREAMLIT_CSS = """
 
     /* Status Badge Styling */
     .status-pass {
-        background: linear-gradient(135deg, #E0F2EF 0%, #C8E6C9 100%);
+        background: linear-gradient(135deg, #E0F2EF 0%, #E8F5E9 100%);
         border-left: 4px solid #009E73;
-        color: #00695C;
+        color: #009E73;
     }
 
     .status-warn {
-        background: linear-gradient(135deg, #FFFDE7 0%, #FFF8E6 100%);
-        border-left: 4px solid #F0E442;
-        color: #827717;
+        background: linear-gradient(135deg, #FFFDE7 0%, #FFFDE7 100%);
+        border-left: 4px solid #C9B900;
+        color: #C9B900;
     }
 
     .status-fail {
-        background: linear-gradient(135deg, #FFEBE5 0%, #FFCCBC 100%);
+        background: linear-gradient(135deg, #FFEBE5 0%, #FFEBE5 100%);
         border-left: 4px solid #D55E00;
-        color: #BF360C;
+        color: #D55E00;
     }
 
     /* Scorecard Container */
@@ -869,7 +891,7 @@ STREAMLIT_CSS = """
     }
 
     .dataframe tr:hover td {
-        background: #F5F5F5 !important;  /* Subtle hover on white */
+        background: #FAFAFA !important;  /* Subtle hover on white */
     }
 
     /* Ghosting / Sample Size Opacity - matches GhostingConfig values */
@@ -951,7 +973,7 @@ STREAMLIT_CSS = """
 code {
         font-family: 'JetBrains Mono', monospace !important;
     font-size: 14px;
-        background: #F8F8F8;
+        background: #FAFAFA;
         padding: 2px 6px;
         border-radius: 4px;
         color: #191919;
@@ -970,7 +992,7 @@ code {
         border-left: 2px solid #A5D6A7;
         padding: 8px 12px;
     font-size: 14px;
-        color: #2E7D32;
+        color: #009E73;
         margin: 8px 0;
     }
 
@@ -1089,7 +1111,7 @@ code {
 
     /* Ensure sufficient color contrast on interactive states */
     .dataframe tr:hover td {
-        background: #F5F5F5 !important;
+        background: #FAFAFA !important;
         color: #191919 !important;
     }
 

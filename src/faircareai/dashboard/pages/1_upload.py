@@ -1,7 +1,8 @@
 """
 FairCareAI - Data Upload Page
 
-Handles data upload with validation and preview.
+Handles data upload with column mapping, validation, and preview.
+Supports CSV and Parquet files.
 WCAG 2.1 AA compliant with clear error messaging.
 """
 
@@ -21,83 +22,76 @@ from faircareai.dashboard.components.audience_toggle import (
 from faircareai.visualization.themes import GOVERNANCE_DISCLAIMER_SHORT
 
 
-def validate_dataframe(df: pl.DataFrame) -> tuple[bool, list[str]]:
-    """Validate uploaded DataFrame for required columns.
+def validate_mapped_data(
+    df: pl.DataFrame,
+    target_col: str,
+    pred_col: str,
+) -> tuple[bool, list[str]]:
+    """Validate uploaded DataFrame using user-selected column mappings.
 
     Args:
         df: Uploaded DataFrame.
+        target_col: User-selected outcome column.
+        pred_col: User-selected prediction column.
 
     Returns:
         Tuple of (is_valid, list_of_errors).
     """
     errors = []
 
-    # Check for outcome column
-    if "y_true" not in df.columns:
-        errors.append("Missing required column: `y_true` (binary outcome: 0 or 1)")
-
-    # Check for prediction column
-    has_prob = "y_prob" in df.columns
-    has_pred = "y_pred" in df.columns
-    if not has_prob and not has_pred:
+    # Check outcome column is binary
+    unique_values = df[target_col].unique().to_list()
+    if not set(unique_values).issubset({0, 1}):
         errors.append(
-            "Missing prediction column: need either `y_prob` (probabilities) or `y_pred` (binary)"
+            f"Column `{target_col}` must be binary (0/1). "
+            f"Found {len(unique_values)} unique values: {unique_values[:10]}"
         )
 
-    # Validate y_true is binary
-    if "y_true" in df.columns:
-        unique_values = df["y_true"].unique().to_list()
-        if not set(unique_values).issubset({0, 1}):
+    # Check prediction column is numeric and in [0, 1]
+    pred_data = df[pred_col]
+    dtype_str = str(pred_data.dtype).lower()
+
+    if "int" in dtype_str and set(pred_data.unique().to_list()).issubset({0, 1}):
+        # Binary predictions — acceptable
+        pass
+    elif "int" in dtype_str or "float" in dtype_str:
+        min_val_raw = pred_data.min()
+        max_val_raw = pred_data.max()
+        min_val = float(min_val_raw) if isinstance(min_val_raw, int | float | Decimal) else None
+        max_val = float(max_val_raw) if isinstance(max_val_raw, int | float | Decimal) else None
+
+        if min_val is None or max_val is None:
             errors.append(
-                f"Column `y_true` must be binary (0/1). Found {len(unique_values)} unique values"
+                f"Column `{pred_col}` must be numeric and contain at least one non-null value."
             )
-
-    # Validate y_prob is in [0, 1]
-    if "y_prob" in df.columns:
-        min_prob_value = df["y_prob"].min()
-        max_prob_value = df["y_prob"].max()
-
-        min_prob = (
-            float(min_prob_value) if isinstance(min_prob_value, int | float | Decimal) else None
-        )
-        max_prob = (
-            float(max_prob_value) if isinstance(max_prob_value, int | float | Decimal) else None
-        )
-
-        if min_prob is None or max_prob is None:
+        elif min_val < 0 or max_val > 1:
             errors.append(
-                "Column `y_prob` must be numeric and contain at least one non-null value."
+                f"Column `{pred_col}` should be in range [0, 1]. "
+                f"Found range: [{min_val:.4f}, {max_val:.4f}]. "
+                "If these are logits, apply sigmoid: 1 / (1 + exp(-x))."
             )
-        elif min_prob < 0 or max_prob > 1:
-            errors.append(
-                f"Column `y_prob` must be in range [0, 1]. Found range: [{min_prob:.4f}, {max_prob:.4f}]"
-            )
-
-    # Check for at least one potential demographic column
-    reserved_cols = {"y_true", "y_prob", "y_pred", "id", "patient_id", "index"}
-    potential_demo_cols = [c for c in df.columns if c not in reserved_cols]
-    if not potential_demo_cols:
+    else:
         errors.append(
-            "No demographic columns found. Need at least one column for fairness analysis."
+            f"Column `{pred_col}` must be numeric (int or float). Found type: {pred_data.dtype}"
         )
 
     return len(errors) == 0, errors
 
 
-def detect_demographic_columns(df: pl.DataFrame) -> list[dict]:
+def detect_demographic_columns(df: pl.DataFrame, exclude: set[str]) -> list[dict]:
     """Detect potential demographic columns with metadata.
 
     Args:
         df: DataFrame to analyze.
+        exclude: Column names to exclude (target, prediction).
 
     Returns:
         List of column info dictionaries.
     """
-    reserved_cols = {"y_true", "y_prob", "y_pred", "id", "patient_id", "index"}
     columns = []
 
     for col in df.columns:
-        if col in reserved_cols:
+        if col in exclude:
             continue
 
         col_data = df[col]
@@ -164,10 +158,10 @@ def render_upload_page() -> None:
         st.markdown("""
         ### Upload Your Model's Predictions
 
-        To analyze your AI model for fairness, we need:
+        To analyze your AI model for fairness, we need a file containing:
 
-        1. **Patient outcomes** - What actually happened (column: `y_true`)
-        2. **Model predictions** - What the model predicted (column: `y_prob` or `y_pred`)
+        1. **Patient outcomes** - What actually happened (any column name)
+        2. **Model predictions** - What the model predicted (any column name)
         3. **Patient demographics** - Groups to compare (e.g., race, insurance, age)
 
         Your data scientist can prepare this file for you.
@@ -176,19 +170,18 @@ def render_upload_page() -> None:
         st.markdown("""
         ### Data Requirements
 
-        Upload a CSV with the following columns:
+        Upload a CSV or Parquet file with the following:
 
-        | Column | Type | Description |
-        |--------|------|-------------|
-        | `y_true` | Binary (0/1) | Ground truth outcome |
-        | `y_prob` | Float [0,1] | Predicted probability (preferred) |
-        | `y_pred` | Binary (0/1) | Binary prediction (alternative) |
-        | `<demographic>` | Any | One or more demographic attributes |
+        | Required | Type | Description |
+        |----------|------|-------------|
+        | Outcome column | Binary (0/1) | Ground truth outcome |
+        | Prediction column | Float [0,1] or Binary | Predicted probability or binary prediction |
+        | Demographic columns | Any | One or more demographic attributes |
 
         **Notes:**
+        - Column names are flexible — you'll map them in the next step
         - Minimum recommended sample size: 500 per group
         - All rows should be from the same evaluation cohort
-        - Ensure representative sampling across demographics
         """)
 
     # Demo data option
@@ -197,9 +190,9 @@ def render_upload_page() -> None:
     with col1:
         st.markdown("#### Upload Your Data")
         uploaded_file = st.file_uploader(
-            "Choose a CSV file",
-            type=["csv"],
-            help="Upload a CSV file with patient outcomes and model predictions",
+            "Choose a CSV or Parquet file",
+            type=["csv", "parquet"],
+            help="Upload a file with patient outcomes, model predictions, and demographics",
         )
 
     with col2:
@@ -216,12 +209,15 @@ def render_upload_page() -> None:
             st.session_state["uploaded_data"] = demo_df
             st.session_state["data_source"] = "demo"
             announce_status_change("Demo dataset loaded successfully")
-            st.success("Demo dataset loaded! Click 'Continue to Analysis' below.")
+            st.success("Demo dataset loaded. Configure column mapping below.")
 
     # Process uploaded file
     if uploaded_file is not None:
         try:
-            df = pl.read_csv(uploaded_file)
+            if uploaded_file.name.endswith(".parquet"):
+                df = pl.read_parquet(uploaded_file)
+            else:
+                df = pl.read_csv(uploaded_file)
             st.session_state["uploaded_data"] = df
             st.session_state["data_source"] = "uploaded"
             announce_status_change("File uploaded successfully")
@@ -230,7 +226,7 @@ def render_upload_page() -> None:
             announce_status_change("Error reading uploaded file", priority="assertive")
             return
 
-    # Show data preview and validation
+    # Show data preview, column mapping, and validation
     if "uploaded_data" in st.session_state:
         df = st.session_state["uploaded_data"]
 
@@ -244,22 +240,84 @@ def render_upload_page() -> None:
         with col2:
             st.metric("Columns", len(df.columns))
         with col3:
-            if "y_true" in df.columns:
-                prevalence = df["y_true"].mean()
-                st.metric("Outcome Prevalence", f"{prevalence:.1%}")
+            st.metric("File Type", st.session_state.get("data_source", "unknown").title())
 
         # Data preview
         with st.expander("View First 10 Rows", expanded=True):
             st.dataframe(df.head(10).to_pandas(), use_container_width=True)
 
-        # Validation
+        # --- Column Mapping ---
+        st.markdown("---")
+        render_semantic_heading("Column Mapping", level=2)
+
+        if audience == "governance":
+            st.markdown(
+                "Select which columns contain the patient outcomes and model predictions. "
+                "We'll try to detect these automatically."
+            )
+        else:
+            st.markdown(
+                "Map your columns to FairCareAI's expected roles. "
+                "Any column name works — no renaming needed."
+            )
+
+        all_cols = df.columns
+
+        # Smart defaults: try to detect outcome and prediction columns
+        target_default = 0
+        pred_default = 0
+        for i, col in enumerate(all_cols):
+            col_lower = col.lower()
+            if col_lower in {"y_true", "outcome", "mortality", "label", "target", "event"}:
+                target_default = i
+            if col_lower in {"y_prob", "y_pred", "prediction", "risk_score", "prob", "score"}:
+                pred_default = i
+
+        col1, col2 = st.columns(2)
+        with col1:
+            target_col = st.selectbox(
+                "Outcome column (binary 0/1)",
+                options=all_cols,
+                index=target_default,
+                help="Column with actual patient outcomes (0 = no event, 1 = event)",
+                key="target_col_select",
+            )
+        with col2:
+            pred_col = st.selectbox(
+                "Prediction column (probabilities or binary)",
+                options=all_cols,
+                index=pred_default,
+                help="Column with model predictions (probabilities [0,1] or binary 0/1)",
+                key="pred_col_select",
+            )
+
+        # Show outcome prevalence if target column is valid
+        if target_col:
+            try:
+                unique_vals = set(df[target_col].unique().to_list())
+                if unique_vals.issubset({0, 1}):
+                    prevalence = df[target_col].mean()
+                    st.caption(f"Outcome prevalence in `{target_col}`: {prevalence:.1%}")
+            except Exception:
+                pass
+
+        # Store column mapping in session state
+        st.session_state["target_col"] = target_col
+        st.session_state["pred_col"] = pred_col
+
+        # --- Validation ---
         st.markdown("---")
         render_semantic_heading("Validation", level=2)
 
-        is_valid, errors = validate_dataframe(df)
+        if target_col == pred_col:
+            st.error("Outcome and prediction columns must be different.")
+            announce_status_change("Validation error: same column selected twice", priority="assertive")
+            return
+
+        is_valid, errors = validate_mapped_data(df, target_col, pred_col)
 
         if is_valid:
-            st.success("Data validation passed! Your file has all required columns.")
+            st.success("Data validation passed.")
             announce_status_change("Data validation passed")
         else:
             st.error("Data validation failed. Please fix the following issues:")
@@ -267,7 +325,7 @@ def render_upload_page() -> None:
                 st.markdown(f"- {error}")
             announce_status_change("Data validation failed", priority="assertive")
 
-        # Column selection
+        # --- Demographic Column Selection ---
         if is_valid:
             st.markdown("---")
             render_semantic_heading("Select Demographic Columns", level=2)
@@ -280,10 +338,11 @@ def render_upload_page() -> None:
             else:
                 st.markdown("""
                 Select protected attributes for fairness analysis.
-                Columns with low cardinality (≤20 unique values) work best.
+                Columns with low cardinality (20 unique values) work best.
                 """)
 
-            detected_cols = detect_demographic_columns(df)
+            exclude_cols = {target_col, pred_col}
+            detected_cols = detect_demographic_columns(df, exclude_cols)
 
             # Group by type - select likely demographic columns
             likely_demo = [c for c in detected_cols if c["is_likely_demographic"]]
@@ -311,7 +370,8 @@ def render_upload_page() -> None:
 
             st.session_state["selected_demographic_cols"] = selected_cols
 
-            # Continue button
+            # --- Prepare normalized data for analysis ---
+            # Rename user columns to standard names so analysis page works generically
             st.markdown("---")
             if selected_cols:
                 if st.button(
@@ -319,6 +379,32 @@ def render_upload_page() -> None:
                     type="primary",
                     use_container_width=True,
                 ):
+                    # Build a normalized DataFrame with standard column names.
+                    # Drop any existing y_true/y_prob/y_pred columns that would
+                    # collide with the renamed columns (only if they're not the
+                    # columns the user actually selected).
+                    std_names = {"y_true", "y_prob", "y_pred"}
+                    user_cols = {target_col, pred_col}
+                    collisions = (std_names - user_cols) & set(df.columns)
+                    normalized_df = df.drop(list(collisions)) if collisions else df
+
+                    rename_map = {}
+                    if target_col != "y_true":
+                        rename_map[target_col] = "y_true"
+                    if pred_col != "y_prob" and pred_col != "y_pred":
+                        # Determine if it's probabilities or binary
+                        unique_vals = set(normalized_df[pred_col].unique().to_list())
+                        if unique_vals.issubset({0, 1}):
+                            rename_map[pred_col] = "y_pred"
+                        else:
+                            rename_map[pred_col] = "y_prob"
+
+                    if rename_map:
+                        normalized_df = normalized_df.rename(rename_map)
+                    else:
+                        normalized_df = normalized_df
+
+                    st.session_state["uploaded_data"] = normalized_df
                     st.session_state["data_validated"] = True
                     st.switch_page("pages/2_analysis.py")
             else:

@@ -123,7 +123,7 @@ Refined all figure legends, axis labels, and explanatory text across FairCareAI 
 
 ---
 
-### 3. `/src/faircareai/visualization/vancalster_plots.py`
+### 3. `/src/faircareai/visualization/subgroup_plots.py`
 **Purpose:** Van Calster et al. (2025) recommended visualizations
 
 #### Improvements Made
@@ -304,7 +304,7 @@ Refined all figure legends, axis labels, and explanatory text across FairCareAI 
 
 1. `/src/faircareai/visualization/governance_dashboard.py` - 120+ lines modified
 2. `/src/faircareai/visualization/performance_charts.py` - 45+ lines modified
-3. `/src/faircareai/visualization/vancalster_plots.py` - 60+ lines modified
+3. `/src/faircareai/visualization/subgroup_plots.py` - 60+ lines modified
 4. `/src/faircareai/reports/generator.py` - 85+ lines modified
 
 **Total:** 310+ lines of improved documentation and labels across 4 core visualization modules.

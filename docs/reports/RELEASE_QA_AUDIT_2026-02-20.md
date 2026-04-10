@@ -57,8 +57,8 @@ Summary:
 Updated RAIC checklist export to read metadata from packaged source catalog instead of hardcoded legacy links.
 
 Changed:
-- `src/faircareai/reports/raic_checklist.py`
-- `tests/test_raic_checklist.py`
+- `src/faircareai/reports/regulatory_checklist.py`
+- `tests/test_regulatory_checklist.py`
 - `README.md`
 - `docs/USAGE.md`
 

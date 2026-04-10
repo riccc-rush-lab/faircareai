@@ -220,11 +220,11 @@ def display_suggestions(suggestions: list[dict]) -> str:
         [
             "=" * 60,
             "To accept suggestions:",
-            "  audit.accept_suggested_attributes([1, 2])  # by index",
+            "  audit.accept_suggested_attributes([0, 1])  # by index (0-based)",
             "  audit.accept_suggested_attributes(['race', 'sex'])  # by name",
             "",
             "To modify reference group:",
-            "  audit.accept_suggested_attributes([1], modify={'race': {'reference': 'Black'}})",
+            "  audit.accept_suggested_attributes([0], modify={'race': {'reference': 'Black'}})",
             "",
             "To add custom attributes:",
             "  audit.add_sensitive_attribute(name='custom', column='my_col', reference='Group A')",

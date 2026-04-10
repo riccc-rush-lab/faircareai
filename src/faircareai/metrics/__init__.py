@@ -16,12 +16,12 @@ from faircareai.metrics.subgroup import (
     compute_intersectional,
     compute_subgroup_metrics,
 )
-from faircareai.metrics.vancalster import (
+from faircareai.metrics.subgroup_performance import (
     compute_auroc_by_subgroup,
     compute_calibration_by_subgroup,
     compute_net_benefit_by_subgroup,
     compute_risk_distribution_by_subgroup,
-    compute_vancalster_metrics,
+    compute_subgroup_metrics_suite,
 )
 
 __all__ = [
@@ -37,7 +37,7 @@ __all__ = [
     "compute_subgroup_metrics",
     "compute_intersectional",
     # Van Calster (2025) recommended metrics
-    "compute_vancalster_metrics",
+    "compute_subgroup_metrics_suite",
     "compute_auroc_by_subgroup",
     "compute_calibration_by_subgroup",
     "compute_net_benefit_by_subgroup",
