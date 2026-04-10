@@ -224,7 +224,7 @@ def render_settings_page() -> None:
     - Governance sign-off workflow
 
     ### Resources
-    - [GitHub Repository](https://github.com/RushAI-jcr/faircare)
+    - [GitHub Repository](https://github.com/riccc-rush-lab/faircareai)
     - [CHAI Framework](https://www.coalitionforhealthai.org)
 
     ### Version

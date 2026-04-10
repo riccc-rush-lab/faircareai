@@ -1,6 +1,6 @@
 # FairCareAI
 
-[![CI](https://github.com/RushAI-jcr/faircare/actions/workflows/ci.yml/badge.svg)](https://github.com/RushAI-jcr/faircare/actions/workflows/ci.yml)
+[![CI](https://github.com/riccc-rush-lab/faircareai/actions/workflows/ci.yml/badge.svg)](https://github.com/riccc-rush-lab/faircareai/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/faircareai.svg)](https://pypi.org/project/faircareai/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -109,7 +109,7 @@ Installs `xmlschema` to validate AI model card XML against the v0.1 XSD.
 ### Development Installation
 
 ```bash
-git clone https://github.com/RushAI-jcr/faircare.git
+git clone https://github.com/riccc-rush-lab/faircareai.git
 cd faircare
 pip install -e ".[dev]"
 pre-commit install
@@ -1062,7 +1062,7 @@ Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTIN
 
 ```bash
 # Clone repository
-git clone https://github.com/RushAI-jcr/faircare.git
+git clone https://github.com/riccc-rush-lab/faircareai.git
 cd faircare
 
 # Install dev dependencies
@@ -1097,11 +1097,17 @@ If you use FairCareAI in your research or clinical implementation, please cite:
   title = {FairCareAI: Healthcare AI Fairness Auditing},
   author = {FairCareAI Contributors},
   year = {2026},
-  url = {https://github.com/RushAI-jcr/faircare},
+  url = {https://github.com/riccc-rush-lab/faircareai},
   version = {0.2.1},
   note = {Python package for auditing ML fairness in healthcare}
 }
 ```
+
+---
+
+## Funding
+
+This project was supported by the Institute for Translational Medicine (ITM) at the University of Chicago and Rush University, funded by the National Center for Advancing Translational Sciences (NCATS) of the National Institutes of Health (NIH) through Grant Number **UL1TR002389** (Clinical and Translational Science Award). The content is solely the responsibility of the authors and does not necessarily represent the official views of the NIH.
 
 ---
 
@@ -1140,8 +1146,8 @@ If you use FairCareAI in your research or clinical implementation, please cite:
   - [ARCHITECTURE.md](ARCHITECTURE.md) - System design and data flow
   - [CONTRIBUTING.md](CONTRIBUTING.md) - Development guidelines
   - [Reports & audits](docs/reports/) - Internal reviews and verification artifacts
-- **Issues**: [GitHub Issues](https://github.com/RushAI-jcr/faircare/issues)
-- **Community Q&A**: Use [GitHub Discussions](https://github.com/RushAI-jcr/faircare/discussions) for questions and feature requests
+- **Issues**: [GitHub Issues](https://github.com/riccc-rush-lab/faircareai/issues)
+- **Community Q&A**: Use [GitHub Discussions](https://github.com/riccc-rush-lab/faircareai/discussions) for questions and feature requests
 - **Code of Conduct**: See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - **Security**: See [SECURITY.md](SECURITY.md)
 

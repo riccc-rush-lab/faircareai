@@ -3,7 +3,13 @@ message: "If you use FairCareAI in your research or clinical implementation, ple
 title: "FairCareAI: Healthcare AI Fairness Auditing"
 version: 0.2.1
 license: "Apache-2.0"
-repository-code: "https://github.com/RushAI-jcr/faircare"
-url: "https://github.com/RushAI-jcr/faircare"
+repository-code: "https://github.com/riccc-rush-lab/faircareai"
+url: "https://github.com/riccc-rush-lab/faircareai"
 authors:
   - name: "FairCareAI Contributors"
+references:
+  - type: grant
+    title: "Clinical and Translational Science Award (CTSA)"
+    institution:
+      name: "National Center for Advancing Translational Sciences (NCATS), National Institutes of Health (NIH)"
+    number: "UL1TR002389"

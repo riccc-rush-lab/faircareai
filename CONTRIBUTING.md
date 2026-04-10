@@ -25,7 +25,7 @@ Thank you for your interest in contributing to FairCareAI! This document provide
 
 ```bash
 # Clone the repository
-git clone https://github.com/RushAI-jcr/faircare.git
+git clone https://github.com/riccc-rush-lab/faircareai.git
 cd faircare
 
 # Create virtual environment
@@ -459,9 +459,9 @@ Use `docs/RELEASE_CHECKLIST.md` for the release gate, including quality checks a
 
 ## Getting Help
 
-- **Questions**: Open a [GitHub Discussion](https://github.com/RushAI-jcr/faircare/discussions)
+- **Questions**: Open a [GitHub Discussion](https://github.com/riccc-rush-lab/faircareai/discussions)
 - **Bugs**: Open a GitHub Issue with reproduction steps
-- **Security**: Use [GitHub Security Advisories](https://github.com/RushAI-jcr/faircare/security/advisories/new) (do not open public issue)
+- **Security**: Use [GitHub Security Advisories](https://github.com/riccc-rush-lab/faircareai/security/advisories/new) (do not open public issue)
 
 ---
 
