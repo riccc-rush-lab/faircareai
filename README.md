@@ -157,6 +157,21 @@ Python >= 3.10. See `pyproject.toml` for the complete dependency list.
 | Polars DataFrame | `FairCareAudit(data=pl_df, ...)` |
 | Pandas DataFrame | `FairCareAudit(data=pd_df, ...)` |
 
+### Auto-Detected Sensitive Attributes
+
+FairCareAI recognizes common healthcare demographic column names automatically:
+
+| Attribute | Detected column names | Default reference |
+|-----------|----------------------|-------------------|
+| Race/Ethnicity | `race`, `ethnicity`, `race_eth`, `patient_race`, `race_cd`, `race_ethnicity` | White |
+| Sex | `sex`, `gender`, `patient_sex`, `sex_cd`, `birth_sex` | Male |
+| Age Group | `age_group`, `age_cat`, `age_bucket`, `age_band`, `age_category` | (largest group) |
+| Insurance | `insurance`, `payer`, `insurance_type`, `coverage`, `payer_type`, `payer_category` | Commercial |
+| Language | `language`, `primary_language`, `lang`, `language_cd`, `preferred_language` | English |
+| Disability | `disability`, `disabled`, `disability_status`, `functional_status` | No |
+
+Add attributes beyond auto-detection with `audit.add_sensitive_attribute()`, or analyze intersections (e.g., race × sex) with `audit.add_intersection(["race", "sex"])`.
+
 ### Pre-Audit Checklist
 
 - [ ] Predictions are probabilities in [0.0, 1.0]
@@ -238,9 +253,9 @@ FairCareAI supports two output personas to serve different audiences with tailor
 **Audience**: Governance committees, clinical leadership, non-technical stakeholders
 **Content**:
 - 5 key sections (Executive Summary, Overall Performance, Subgroup Performance, Flags, Decision Block)
-- 8 key figures following Van Calster et al. (2025):
+- Key figures following Van Calster et al. (2025):
   - 4 overall performance figures (AUROC, Calibration, Brier Score, Classification Metrics)
-  - 4 subgroup fairness figures per attribute (AUROC, Sensitivity/TPR, FPR, Selection Rate)
+  - 4 subgroup fairness figures per sensitive attribute (AUROC, Sensitivity/TPR, FPR, Selection Rate)
 - Plain language summaries with clinical interpretation
 - Clear pass/warning/flag indicators
 - **Minimum 14px fonts** for readability
@@ -294,60 +309,6 @@ FairCareAI aligns governance artifacts with the CHAI Applied Model Card template
 - [CHAI RAIC Checkpoint 1 checklist PDF](https://chai.org/wp-content/uploads/2025/02/Responsible-AI-Checkpoint-1-CHAI-Responsible-AI-Checklist.pdf)
 
 `to_regulatory_checklist()` exports the full checklist with criterion IDs, auto-evaluable evidence where available, and reviewer placeholders for manual governance sign-off.
-
----
-
-## Data Requirements
-
-### Required Columns
-
-Your data must include:
-
-| Column | Description | Example |
-|--------|-------------|---------|
-| **pred_col** | Model predictions (probabilities 0-1) | `risk_score`, `predicted_prob`, `y_prob` |
-| **target_col** | Actual outcomes (binary 0/1) | `readmit_30d`, `mortality`, `outcome` |
-
-### Auto-Detected Sensitive Attributes
-
-FairCareAI automatically detects common healthcare demographic columns:
-
-| Attribute | Detected Column Names | Default Reference |
-|-----------|----------------------|-------------------|
-| **Race/Ethnicity** | `race`, `ethnicity`, `race_eth`, `patient_race`, `race_cd`, `race_ethnicity` | White |
-| **Sex** | `sex`, `gender`, `patient_sex`, `sex_cd`, `birth_sex` | Male |
-| **Age Group** | `age_group`, `age_cat`, `age_bucket`, `age_band`, `age_category` | (largest group) |
-| **Insurance** | `insurance`, `payer`, `insurance_type`, `coverage`, `payer_type`, `payer_category` | Commercial |
-| **Language** | `language`, `primary_language`, `lang`, `language_cd`, `preferred_language` | English |
-| **Disability** | `disability`, `disabled`, `disability_status`, `functional_status` | No |
-
-### Custom Sensitive Attributes
-
-Add your own attributes beyond auto-detection:
-
-```python
-# Add custom sensitive attribute
-audit.add_sensitive_attribute(
-    name="rural_urban",
-    column="geographic_type",
-    reference="Urban",
-    clinical_justification="Rural patients may face access barriers"
-)
-
-# Add intersection for subgroup analysis
-audit.add_intersection(["race", "sex"])  # Analyzes race × sex combinations
-```
-
-### Example Data Schema
-
-```
-patient_id | risk_score | readmit_30d | race    | sex    | insurance  | age_group
------------|------------|-------------|---------|--------|------------|----------
-P001       | 0.72       | 1           | White   | Female | Medicare   | 65-74
-P002       | 0.31       | 0           | Black   | Male   | Medicaid   | 45-54
-P003       | 0.85       | 1           | Hispanic| Female | Commercial | 35-44
-...
-```
 
 ---
 
@@ -831,21 +792,16 @@ Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTIN
 ### Development Setup
 
 ```bash
-# Clone repository
 git clone https://github.com/riccc-rush-lab/faircareai.git
-cd faircare
+cd faircareai
 
-# Install dev dependencies
-pip install -e ".[dev]"
+uv sync --extra dev
+pre-commit install
 
-# Run tests
-pytest tests/
-
-# Type checking
-mypy src/faircareai
-
-# Linting
-ruff check src/
+# Run tests, type check, lint
+uv run pytest tests/
+uv run mypy src/faircareai
+uv run ruff check src/
 ```
 
 ### Areas for Contribution
@@ -912,7 +868,6 @@ This project was supported by the Institute for Translational Medicine (ITM) at 
   - [USAGE.md](docs/USAGE.md) - Quickstart and end-to-end usage
   - [METHODOLOGY.md](docs/METHODOLOGY.md) - Scientific foundation and fairness theory
   - [PDF_SETUP_GUIDE.md](docs/PDF_SETUP_GUIDE.md) - PDF export setup
-  - [RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) - Maintainer release gate
   - [ARCHITECTURE.md](ARCHITECTURE.md) - System design and data flow
   - [CONTRIBUTING.md](CONTRIBUTING.md) - Development guidelines
   - [Reports & audits](docs/reports/) - Internal reviews and verification artifacts
