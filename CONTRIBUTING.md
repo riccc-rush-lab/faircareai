@@ -26,7 +26,7 @@ Thank you for your interest in contributing to FairCareAI! This document provide
 ```bash
 # Clone the repository
 git clone https://github.com/riccc-rush-lab/faircareai.git
-cd faircare
+cd faircareai
 
 # Create virtual environment
 python -m venv .venv
@@ -77,7 +77,7 @@ pre-commit run --all-files
 ## Project Structure
 
 ```
-faircare/
+faircareai/
 ├── src/faircareai/      # Main package
 │   ├── core/            # Orchestration, config, results
 │   ├── metrics/         # Performance and fairness metrics
@@ -352,7 +352,7 @@ Then create a Pull Request on GitHub with:
 5. **Include plain language explanation for governance persona**
 6. Add to `AuditResults` if needed
 7. Write tests
-8. Update `docs/references/FIGURE_LEGEND_REFERENCE.md`
+8. Update `docs/METHODOLOGY.md` if the visualization introduces a new metric
 
 ### Plain Language Standards
 
@@ -453,7 +453,7 @@ Maintainers handle releases:
 3. Create git tag
 4. GitHub Actions builds and publishes to PyPI
 
-Use `docs/RELEASE_CHECKLIST.md` for the release gate, including quality checks and artifact verification.
+Run `pre-commit run --all-files` and verify all CI checks pass before tagging.
 
 ---
 

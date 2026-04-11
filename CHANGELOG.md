@@ -5,6 +5,48 @@ All notable changes to FairCareAI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.7] - 2026-04-11
+
+### Changed
+
+- README copy: cleaner PyPI presentation, consistent package naming, trimmed inline citations
+- `docs/USAGE.md`: corrected `pip install faircare` package name throughout
+- Repository: removed internal audit artifacts and dev notes from public repo
+
+---
+
+## [0.2.6] - 2026-01-15
+
+### Fixed
+
+- CI: resolved lint, type check, and Windows test failures
+
+---
+
+## [0.2.5] - 2026-01-10
+
+### Fixed
+
+- Reports: cross-platform `strftime` compatibility on Windows
+
+---
+
+## [0.2.4] - 2025-12-28
+
+### Fixed
+
+- Publish pipeline: `verify-testpypi` script compatibility on all platforms
+
+---
+
+## [0.2.3] - 2025-12-22
+
+### Changed
+
+- Version bump to resolve TestPyPI conflict (0.2.2 was consumed during testing)
+
+---
+
 ## [0.2.1] - 2025-12-17
 
 ### Added
@@ -15,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New export methods: `to_governance_html()`, `to_governance_pdf()`
   - Persona parameter: `results.to_html(persona="governance")`
 
-- **Van Calster et al. (2025) Visualizations**
+- **Performance Visualizations**
   - 4 overall performance figures: AUROC gauge, Calibration plot, Brier score, Classification metrics
   - 4 subgroup fairness figures: AUROC by group, Sensitivity (TPR), FPR, Selection rate
   - Plain language explanations on every figure for non-technical audiences
@@ -32,9 +74,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Dynamic chart heights that scale with data
   - Generous margins preventing text truncation
 
-- **CHAI RAIC Framework Alignment**
-  - 7 governance report sections mapped to CHAI checkpoints
-  - Advisory disclaimer banner: "Package SUGGESTS, humans DECIDE"
+- **Governance Report Structure**
+  - 7 report sections covering executive summary, descriptive stats, performance, fairness, limitations, and governance sign-off
+  - Advisory disclaimer on all outputs
   - Detection-based language ("No Issues Detected" vs "Ready for Deployment")
 
 ### Changed
@@ -77,7 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Predictive Parity (PPV equality)
   - Calibration by group
 
-- **Performance Metrics (TRIPOD+AI Compliant)**
+- **Performance Metrics**
   - AUROC with bootstrap CI
   - AUPRC (Average Precision)
   - Brier Score
@@ -93,7 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Stratified permutation tests for hypothesis testing
   - Multiplicity control (Holm-Bonferroni, BH-FDR)
 
-- **Visualization (WCAG 2.1 AA Compliant)**
+- **Visualization**
   - Executive summary dashboard
   - Forest plots with confidence intervals
   - ROC and Precision-Recall curves
@@ -163,7 +205,5 @@ results = audit.run()
 ```
 
 ### Governance Philosophy
-
-> **Package SUGGESTS, humans DECIDE**
 
 All FairCareAI outputs are advisory. Final deployment decisions rest with clinical stakeholders and governance committees.

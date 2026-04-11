@@ -2,9 +2,7 @@
 
 ## Overview
 
-FairCareAI is a Python package for auditing machine learning models for fairness in clinical contexts. It follows the **Van Calster et al. (2025)** methodology and aligns with the **CHAI RAIC Checkpoint 1** framework.
-
-**Core Philosophy:** Package SUGGESTS, humans DECIDE
+FairCareAI is a Python package for auditing machine learning models for fairness in clinical contexts.
 
 All outputs are advisory. Final deployment decisions rest with clinical stakeholders and governance committees.
 
@@ -153,7 +151,7 @@ src/faircareai/
 │   ├── fairness.py         # Demographic parity, equalized odds
 │   ├── descriptive.py      # Cohort summary (Table 1)
 │   ├── subgroup.py         # Subgroup analysis
-│   └── subgroup_performance.py  # Subgroup performance metrics (Van Calster 2025)
+│   └── subgroup_performance.py  # Subgroup performance metrics
 │
 ├── visualization/           # Visualization (10 modules)
 │   ├── plots.py            # Plotly figures
@@ -276,21 +274,21 @@ flowchart LR
         S4["4. Subgroup<br/>Performance"]
         S5["5. Fairness<br/>Assessment"]
         S6["6. Limitations<br/>& Flags"]
-        S7["7. Governance<br/>Decision Block"]
+        S7["7. Governance<br/>Decision"]
     end
 
     S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
 ```
 
-| Section | Content | CHAI Alignment |
-|---------|---------|----------------|
-| 1. Executive Summary | Traffic light status, key findings | AC1.CR100 |
-| 2. Descriptive Statistics | Cohort characteristics (Table 1) | AC1.CR68 |
-| 3. Overall Performance | AUROC, AUPRC, Brier, calibration | TRIPOD+AI |
-| 4. Subgroup Performance | Metrics by demographic group | AC1.CR82 |
-| 5. Fairness Assessment | Disparity analysis with CIs | AC1.CR92 |
-| 6. Limitations & Flags | Warnings and considerations | AC1.CR93 |
-| 7. Governance Block | Sign-off section | AC1.CR100 |
+| Section | Content |
+|---------|---------|
+| 1. Executive Summary | Traffic light status, key findings |
+| 2. Descriptive Statistics | Cohort characteristics (Table 1) |
+| 3. Overall Performance | AUROC, AUPRC, Brier, calibration |
+| 4. Subgroup Performance | Metrics by demographic group |
+| 5. Fairness Assessment | Disparity analysis with CIs |
+| 6. Limitations & Flags | Warnings and considerations |
+| 7. Governance Decision | Sign-off section |
 
 ---
 
@@ -311,7 +309,7 @@ flowchart LR
 
 | Package | Purpose |
 |---------|---------|
-| `weasyprint` | PDF generation |
+| `playwright` | PDF generation via headless Chromium |
 | `python-pptx` | PowerPoint generation |
 | `kaleido` | Static image export |
 

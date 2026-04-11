@@ -2,17 +2,15 @@
 
 ## Scientific Foundation
 
-FairCareAI implements fairness auditing methodology based on peer-reviewed research in healthcare AI, algorithmic fairness, and clinical prediction model reporting.
-
-**Core Principle:** Package SUGGESTS, humans DECIDE
+FairCareAI computes fairness auditing metrics grounded in peer-reviewed research in healthcare AI, algorithmic fairness, and clinical prediction model reporting.
 
 All metrics and recommendations are advisory. Final deployment decisions require clinical judgment and organizational governance.
 
 ---
 
-## Primary Framework: Van Calster et al. (2025)
+## Performance Metrics Reference: Van Calster et al. (2025)
 
-FairCareAI follows the methodology proposed in:
+Core performance metric selection follows:
 
 > Van Calster B, Collins GS, Vickers AJ, et al. (2025). "Evaluation of performance measures in predictive artificial intelligence models to support medical decisions: overview and guidance." *The Lancet Digital Health*. https://doi.org/10.1016/j.landig.2025.100916
 
@@ -23,9 +21,9 @@ This framework provides:
 3. **Calibration Focus**: Emphasis on calibration for clinical decision-making
 4. **Uncertainty Quantification**: Bootstrap confidence intervals for all metrics
 
-### Van Calster 4: Recommended Core Metrics
+### Recommended Core Metrics
 
-Per Van Calster et al. (2025) Table 2, FairCareAI implements the **4 RECOMMENDED** performance measures:
+The following four performance measures are recommended for clinical AI evaluation (Van Calster et al., 2025, Table 2):
 
 | Metric | Van Calster Classification | Purpose |
 |--------|---------------------------|---------|
@@ -38,7 +36,7 @@ Per Van Calster et al. (2025) Table 2, FairCareAI implements the **4 RECOMMENDED
 - O:E ratio, Calibration slope/intercept, Brier score, Scaled Brier Score
 - ICI (Integrated Calibration Index), ECI (E-statistic Calibration Index)
 
-**Metrics Van Calster Warns Against** (NOT implemented):
+**Metrics Not Implemented** (see Van Calster et al., 2025 for rationale):
 - F1 score: "ONLY metric violating BOTH properness AND clear focus"
 - Classification summaries (Accuracy, MCC, Kappa, DOR): Improper measures
 
@@ -71,9 +69,9 @@ Each figure includes plain language explanations for non-technical audiences:
 
 ---
 
-## Governance Framework: CHAI RAIC
+## Governance Reference: CHAI RAIC
 
-FairCareAI aligns with the **Coalition for Health AI (CHAI)** Responsible AI Compass (RAIC) framework, specifically **Checkpoint 1: Pre-Deployment Audit**.
+The report structure references the **Coalition for Health AI (CHAI)** Responsible AI Compass (RAIC) framework, specifically Checkpoint 1 (Pre-Deployment Audit criteria).
 
 ### CHAI Checkpoint 1 Criteria
 
@@ -173,9 +171,9 @@ P(Y = 1 | R_hat = p, A = a) = p = P(Y = 1 | R_hat = p, A = b)
 
 ---
 
-## Performance Metrics (TRIPOD+AI)
+## Performance Metrics
 
-FairCareAI reports metrics aligned with the **TRIPOD+AI** statement for prediction model reporting:
+The following metrics follow reporting guidance from the **TRIPOD+AI** statement:
 
 > Collins GS, et al. (2024). "TRIPOD+AI statement: updated guidance for reporting clinical prediction models that use regression or machine learning methods." *BMJ*.
 

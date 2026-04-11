@@ -95,7 +95,7 @@ RUN python -m playwright install-deps chromium
 RUN python -m playwright install chromium
 
 # Install your package
-RUN pip install faircareai[export]
+RUN pip install "faircare[export]"
 
 WORKDIR /app
 ```
@@ -120,12 +120,13 @@ pip install playwright
 
 ### Charts appear blank in PDF
 
-**Cause**: Network timeout loading Plotly.js
+**Cause**: Network timeout loading Plotly.js (rare on slow connections)
 
-**Solution**: Increase timeout (usually only needed on slow connections)
-```python
-# Not implemented yet - contact support if needed
+**Solution**: Ensure Chromium is fully installed and retry:
+```bash
+python -m playwright install chromium
 ```
+If the issue persists, [open a GitHub issue](https://github.com/riccc-rush-lab/faircareai/issues) with your platform and Python version.
 
 ---
 
@@ -162,12 +163,7 @@ pip install playwright
 
 ### Custom PDF Options
 
-Playwright supports many PDF customization options:
-
-```python
-# Not yet exposed in public API
-# File an issue if you need custom margins, page size, etc.
-```
+Playwright supports custom margins, page size, and other PDF options. These are not yet exposed in the public API — [open an issue](https://github.com/riccc-rush-lab/faircareai/issues) if you need them.
 
 ### Headless vs Headed
 
@@ -273,11 +269,11 @@ If you encounter issues:
 1. **Check Playwright is installed**: `pip show playwright`
 2. **Check Chromium is installed**: `python -m playwright install chromium`
 3. **Try test script**: `python test_pdf_output.py`
-4. **File an issue**: https://github.com/your-repo/faircareai/issues
+4. **File an issue**: https://github.com/riccc-rush-lab/faircareai/issues
 
 ---
 
-**Last Updated**: 2026-01-08
+**Last Updated**: 2026-04-11
 **Tested On**: macOS 15.3, Windows 11, Ubuntu 22.04
 **Python**: 3.10+
 **Status**: ✅ Production Ready

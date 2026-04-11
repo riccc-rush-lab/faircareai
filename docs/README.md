@@ -1,14 +1,8 @@
 # Documentation
 
-This folder contains user guides, methodology references, and internal review artifacts.
+## User Guides
 
-## Guides
-- [USAGE.md](USAGE.md) — Quickstart and end-to-end usage
+- [USAGE.md](USAGE.md) — API reference, CLI, and end-to-end examples
 - [METHODOLOGY.md](METHODOLOGY.md) — Scientific foundation and fairness theory
-- [PDF_SETUP_GUIDE.md](PDF_SETUP_GUIDE.md) — PDF export setup
-
-## Reports & Audits
-- [reports/](reports/) — Internal reviews and verification artifacts
-
-## References
-- [references/](references/) — Figure legends and other reference materials
+- [PDF_SETUP_GUIDE.md](PDF_SETUP_GUIDE.md) — PDF export setup (Playwright)
+- [ARCHITECTURE.md](ARCHITECTURE.md) — System design and module structure
