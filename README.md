@@ -134,230 +134,78 @@ FairCareAI is tested and supported on:
 
 ### Requirements
 
-- Python >= 3.10
-- polars >= 0.20.0
-- plotly >= 5.18.0
-- streamlit >= 1.30.0
-- scipy >= 1.11.0
-- statsmodels >= 0.14.0
-
-See `pyproject.toml` for complete dependencies.
+Python >= 3.10. See `pyproject.toml` for the complete dependency list.
 
 ---
 
-## Data Preparation Guide
-
-Before using FairCareAI, prepare a dataset with your model's predictions. This section covers what data scientists need to bring and common preparation steps.
+## Data Requirements
 
 ### What You Need to Bring
 
 | Required | Column | Type | Description |
 |----------|--------|------|-------------|
-| Yes | **Predictions** | float [0.0, 1.0] | Model-generated risk probabilities |
-| Yes | **Outcomes** | int (0 or 1) | Actual binary outcomes |
-| Recommended | **Sensitive Attributes** | string/categorical | Demographics (auto-detected or custom) |
+| Yes | **Predictions** | float [0.0, 1.0] | Model-generated risk probabilities — use `predict_proba()[:, 1]`, not logits or binary labels |
+| Yes | **Outcomes** | int (0 or 1) | Actual binary outcomes from a held-out test set |
+| Recommended | **Sensitive attributes** | string/categorical | Demographics — auto-detected from column names or added manually |
 
-### Supported File Formats
+### Supported Formats
 
-FairCareAI accepts multiple input formats:
-
-| Format | Extension | Example |
-|--------|-----------|---------|
-| **Parquet** | `.parquet` | `FairCareAudit(data="predictions.parquet", ...)` |
-| **CSV** | `.csv` | `FairCareAudit(data="data.csv", ...)` |
-| **Polars DataFrame** | - | `FairCareAudit(data=pl_df, ...)` |
-| **Pandas DataFrame** | - | `FairCareAudit(data=pd_df, ...)` |
-
-### Prediction Column Requirements
-
-Your **prediction column** must contain:
-- **Probabilities** in range [0.0, 1.0] (NOT logits, NOT raw scores)
-- One value per patient/observation
-
-```python
-# Correct: Probabilities from model.predict_proba()
-y_prob = model.predict_proba(X_test)[:, 1]  # Second column for positive class
-
-# Wrong: Logits (unbounded values)
-logits = model.decision_function(X_test)  # Must convert to probabilities first
-
-# Wrong: Binary predictions
-y_pred = model.predict(X_test)  # Use predict_proba(), not predict()
-```
-
-### Outcome Column Requirements
-
-Your **outcome/target column** must contain:
-- **Binary values**: exactly 0 or 1
-- 1 = event occurred (e.g., readmission, mortality)
-- 0 = event did not occur
-
-### CSV File Format
-
-For CSV files, ensure:
-- **Header row required** with column names
-- **UTF-8 encoding** (standard)
-- **Comma-delimited** (standard CSV)
-- No special quoting needed for most data
-
-```csv
-patient_id,risk_score,readmit_30d,race,sex,insurance
-P001,0.72,1,White,Female,Medicare
-P002,0.31,0,Black,Male,Medicaid
-P003,0.85,1,Hispanic,Female,Commercial
-```
-
-### Parquet Files (Recommended for Large Datasets)
-
-Parquet is recommended for:
-- Datasets > 100,000 rows
-- Faster loading times
-- Smaller file sizes
-- Better type preservation
-
-```python
-# Save your predictions as Parquet
-import polars as pl
-
-df = pl.DataFrame({
-    "risk_score": y_prob,
-    "outcome": y_test,
-    "race": race_values,
-    "sex": sex_values,
-})
-df.write_parquet("predictions.parquet")
-```
-
-### Common Data Preparation Mistakes
-
-| Mistake | Problem | Solution |
-|---------|---------|----------|
-| Using logits instead of probabilities | Values outside [0,1] | Apply sigmoid: `1 / (1 + np.exp(-logits))` |
-| Using `model.predict()` | Returns 0/1, not probabilities | Use `model.predict_proba()[:, 1]` |
-| Missing values in predictions | Audit will fail | Impute or remove rows with NaN |
-| Outcome not binary | Validation error | Ensure values are exactly 0 or 1 |
-| Predictions on training data | Overfitting bias | Use held-out test set predictions |
+| Format | Example |
+|--------|---------|
+| Parquet (recommended) | `FairCareAudit(data="predictions.parquet", ...)` |
+| CSV | `FairCareAudit(data="data.csv", ...)` |
+| Polars DataFrame | `FairCareAudit(data=pl_df, ...)` |
+| Pandas DataFrame | `FairCareAudit(data=pd_df, ...)` |
 
 ### Pre-Audit Checklist
 
-Before running FairCareAI, ensure you have:
-
-- [ ] **Model predictions** as probabilities [0.0, 1.0]
-- [ ] **Actual outcomes** as binary (0 or 1)
-- [ ] **Held-out test set** (not training data)
-- [ ] **Sensitive attribute columns** (race, sex, age_group, etc.)
-- [ ] **Clinical context** (threshold, use case type)
-
-### Minimum Viable Dataset
-
-```python
-# Minimum required columns
-required_columns = {
-    "prediction_column": "risk_score",   # Probabilities [0, 1]
-    "outcome_column": "readmit_30d",     # Binary 0/1
-}
-
-# Recommended: At least one sensitive attribute
-recommended_columns = {
-    "race": ["White", "Black", "Hispanic", "Asian", "Other"],
-    "sex": ["Male", "Female"],
-}
-```
+- [ ] Predictions are probabilities in [0.0, 1.0]
+- [ ] Outcomes are binary (0 or 1)
+- [ ] Data is from a held-out test set (not training data)
+- [ ] At least one sensitive attribute column is present
+- [ ] Clinical context is defined (threshold, use case type)
 
 ---
 
 ## Quick Start
 
-### Step 1: Load Your Data
-
-FairCareAI accepts multiple input formats. Choose the one that fits your workflow:
-
 ```python
-from faircareai import FairCareAudit, FairnessConfig
-from faircareai import FairnessMetric, UseCaseType
+from faircareai import FairCareAudit, FairnessConfig, FairnessMetric, UseCaseType
 
-# Option A: Parquet file (recommended for large datasets)
+# Load predictions (Parquet, CSV, Polars, or Pandas DataFrame)
 audit = FairCareAudit(
     data="predictions.parquet",
     pred_col="risk_score",
-    target_col="readmit_30d"
+    target_col="readmit_30d",
 )
 
-# Option B: CSV file
-audit = FairCareAudit(
-    data="patient_predictions.csv",
-    pred_col="risk_score",
-    target_col="readmit_30d"
-)
-
-# Option C: Polars DataFrame
-import polars as pl
-df = pl.read_csv("data.csv")
-audit = FairCareAudit(data=df, pred_col="risk_score", target_col="readmit_30d")
-
-# Option D: Pandas DataFrame
-import pandas as pd
-df = pd.read_csv("data.csv")
-audit = FairCareAudit(data=df, pred_col="risk_score", target_col="readmit_30d")
-```
-
-### Step 2: Configure Sensitive Attributes
-
-```python
-# See suggested sensitive attributes
+# Auto-detect demographic columns and accept them
 audit.suggest_attributes()
-# Output: Detected race_ethnicity, sex, insurance columns...
+audit.accept_suggested_attributes([1, 2, 3])  # e.g. race, sex, insurance
 
-# Accept suggestions (1-indexed)
-audit.accept_suggested_attributes([1, 2, 3])
-```
-
-### Step 3: Set Fairness Configuration
-
-```python
-# Get fairness metric recommendation based on use case
-audit.config.use_case_type = UseCaseType.INTERVENTION_TRIGGER
-recommendation = audit.suggest_fairness_metric()
-print(recommendation)
-
-# Configure the audit
+# Configure fairness context
 audit.config = FairnessConfig(
     model_name="Readmission Risk Model v2.0",
-    model_version="2.0.0",
     intended_use="Trigger care management outreach for high-risk patients",
     intended_population="Adult patients discharged from acute care",
     primary_fairness_metric=FairnessMetric.EQUALIZED_ODDS,
     fairness_justification=(
-        "Model triggers intervention (care management). "
-        "Equalized odds ensures equal TPR/FPR across groups, "
-        "preventing differential access to beneficial intervention."
+        "Model triggers a beneficial intervention. Equalized odds ensures "
+        "equal TPR/FPR across groups, preventing differential access to care."
     ),
     use_case_type=UseCaseType.INTERVENTION_TRIGGER,
 )
-```
 
-### Step 4: Run Audit and Export Reports
-
-```python
 # Run the audit
 results = audit.run()
 
-# View executive summary
-results.plot_executive_summary()
-
-# Export for Data Scientist (full technical output - default)
+# Export: full technical report for data scientists
 results.to_html("fairness_report.html")
 results.to_pdf("fairness_report.pdf")
 
-# Export for Governance (streamlined 3-5 page output)
-results.to_governance_html("governance.html")
+# Export: streamlined 3-5 page report for governance committees
 results.to_governance_pdf("governance.pdf")
-# Or equivalently:
-results.to_html("governance.html", persona="governance")
-results.to_pdf("governance.pdf", persona="governance")
-
-# PowerPoint deck (always governance-focused)
-results.to_pptx("governance_deck.pptx")
+results.to_pptx("committee_deck.pptx")
 ```
 
 ---
@@ -505,77 +353,27 @@ P003       | 0.85       | 1           | Hispanic| Female | Commercial | 35-44
 
 ## Fairness Visualizations
 
-FairCareAI implements the **Van Calster et al. (2025)** 4-visualization framework for healthcare AI fairness assessment. Each visualization includes plain language explanations suitable for non-technical audiences.
+FairCareAI implements the **Van Calster et al. (2025)** visualization framework for healthcare AI assessment. Each figure includes plain-language explanations suitable for clinical leadership and non-technical reviewers.
 
-### Overall Performance (4 Figures)
+### Overall Performance (4 figures)
 
-#### 1. AUROC (Discrimination)
+| Figure | Metric | Clinical interpretation |
+|--------|--------|------------------------|
+| ROC curve | AUROC | Model's ability to rank patients correctly. 0.7+ acceptable, 0.8+ strong. |
+| Calibration curve | Calibration slope | Do predicted probabilities match observed rates? Slope 0.8–1.2 is acceptable. |
+| Brier score gauge | Brier score | Overall probabilistic accuracy. <0.15 excellent, 0.15–0.25 acceptable. |
+| Classification bar chart | Sensitivity / Specificity / PPV | Tradeoffs at the chosen decision threshold. |
 
-**What it shows**: The X-axis shows false positive rate (0-100%), Y-axis shows true positive rate (0-100%). The area under the ROC curve (AUROC) measures the model's ability to separate high-risk from low-risk patients.
+### Subgroup Fairness (4 figures per attribute)
 
-**Plain language**: Think of AUROC as the model's ability to rank patients correctly. A score of 0.5 means random guessing (coin flip), while 1.0 means perfect ranking. Healthcare standard: 0.7+ is acceptable, 0.8+ is strong.
+For each sensitive attribute (race, sex, insurance, etc.):
 
-**Why it matters**: Poor discrimination means the model cannot reliably identify who will and won't experience the outcome.
-
-#### 2. Calibration Curve
-
-**What it shows**: X-axis shows predicted risk from the model (0-100%), Y-axis shows actual observed rate (0-100%). Points should fall near the diagonal line for good calibration.
-
-**Plain language**: If the model predicts 20% risk for a group, do about 20% actually experience the outcome? Points closer to the diagonal line mean more trustworthy risk estimates.
-
-**Why it matters**: Under/over-estimating risk leads to wrong treatment decisions. Calibration slope should be 0.8-1.2 (ideal: 1.0).
-
-#### 3. Brier Score (Overall Accuracy)
-
-**What it shows**: A gauge showing Brier score from 0 (perfect) to 0.5 (poor). Lower is better.
-
-**Plain language**: Think of it as the "error" in risk predictions. Score <0.15 = excellent, 0.15-0.25 = acceptable, >0.25 = needs improvement.
-
-**Why it matters**: High Brier scores indicate the model's probability estimates are not reliable for clinical decisions.
-
-#### 4. Classification Metrics at Threshold
-
-**What it shows**: Bar chart showing Sensitivity (% of actual cases detected), Specificity (% correctly identified as negative), and PPV (% flagged who truly have condition).
-
-**Plain language**: At the chosen risk threshold, these metrics show what happens to patients. Higher sensitivity means fewer missed cases, higher specificity means fewer false alarms.
-
-**Why it matters**: Thresholds involve tradeoffs between catching all cases vs. avoiding unnecessary interventions.
-
-### Subgroup Fairness (4 Figures per Attribute)
-
-For each sensitive attribute (race, sex, insurance, etc.), FairCareAI generates:
-
-#### 1. AUROC by Subgroup
-
-**What it shows**: Bar chart comparing model discrimination across demographic groups. X-axis shows groups, Y-axis shows AUROC (0.5-1.0).
-
-**Plain language**: Does the model perform equally well across all demographic groups? All bars should be similar height (difference <0.05 is ideal). Lower bars mean the model is less accurate for that group.
-
-**Why it matters**: We want the model to work well for everyone, not just some groups.
-
-#### 2. Sensitivity (TPR) by Subgroup
-
-**What it shows**: Bar chart showing true positive rate for each group. X-axis shows groups, Y-axis shows percentage of actual cases correctly identified (0-100%).
-
-**Plain language**: Of patients who actually develop the outcome, what percentage does the model correctly identify in each group? Large differences mean the model "misses" more cases in certain groups.
-
-**Fairness goal**: Differences between groups should be <10 percentage points.
-
-#### 3. False Positive Rate by Subgroup
-
-**What it shows**: Bar chart showing FPR for each group. X-axis shows groups, Y-axis shows percentage incorrectly flagged as high-risk (0-50%).
-
-**Plain language**: Of patients who DON'T have the outcome, what percentage are incorrectly flagged as high-risk in each group? Lower is better (fewer false alarms).
-
-**Fairness concern**: Higher FPR means a group gets unnecessary interventions/worry.
-
-#### 4. Selection Rate by Subgroup
-
-**What it shows**: Bar chart showing what percentage of each group is flagged as "high-risk". X-axis shows groups, Y-axis shows selection rate (0-100%).
-
-**Plain language**: This shows which groups the model identifies for intervention. Large differences may indicate disparate treatment even if clinically justified.
-
-**Consider**: Should intervention rates differ by demographics?
+| Figure | Metric | Fairness goal |
+|--------|--------|---------------|
+| AUROC by group | Discrimination | Group differences < 0.05 |
+| Sensitivity (TPR) by group | Detection rate | Group differences < 10 pp |
+| FPR by group | False alarm rate | Group differences < 10 pp |
+| Selection rate by group | Flagging rate | Clinically justified differences |
 
 ### Typography and Accessibility
 
@@ -972,80 +770,51 @@ faircareai dashboard
 
 ## Configuration
 
-### Complete Example
-
 ```python
-from faircareai import FairCareAudit, FairnessConfig
-from faircareai import FairnessMetric, UseCaseType, ModelType
+from faircareai import FairCareAudit, FairnessConfig, FairnessMetric, UseCaseType
 
 audit = FairCareAudit(
     data="predictions.parquet",
     pred_col="risk_score",
     target_col="readmit_30d",
-    threshold=0.3  # Adjust based on operating point
+    threshold=0.3,
 )
 
-# Auto-detect and accept attributes
+# Auto-detect demographic columns or add custom ones
 audit.suggest_attributes()
-audit.accept_suggested_attributes([1, 2, 3])  # race, sex, insurance
-
-# Or manually configure
+audit.accept_suggested_attributes([1, 2, 3])
 audit.add_sensitive_attribute(
     name="language",
     column="primary_language",
     reference="English",
-    clinical_justification="Language barriers affect care coordination"
+    clinical_justification="Language barriers affect care coordination",
 )
 
-# Configure audit
 audit.config = FairnessConfig(
-    # Model identity (required)
     model_name="30-Day Readmission Risk Model",
     model_version="2.1.0",
-    model_type=ModelType.BINARY_CLASSIFIER,
-
-    # Intended use (recommended)
-    intended_use="Identify high-risk patients for care management outreach within 24h of discharge",
-    intended_population="Adult patients (18+) discharged from medicine or surgery services",
-    out_of_scope=[
-        "Pediatric patients",
-        "Psychiatric admissions",
-        "Patients in hospice care"
-    ],
-
-    # Fairness configuration (required)
+    intended_use="Identify high-risk patients for care management outreach",
+    intended_population="Adult inpatients discharged from medicine or surgery",
+    out_of_scope=["Pediatric patients", "Psychiatric admissions"],
     primary_fairness_metric=FairnessMetric.EQUALIZED_ODDS,
     fairness_justification=(
-        "This model triggers a beneficial intervention (care management). "
-        "Equalized odds ensures equal true positive rates (benefit access) "
-        "and false positive rates (intervention burden) across demographic groups. "
-        "This prevents systematic advantage/disadvantage in accessing care coordination."
+        "Model triggers a beneficial intervention. Equalized odds ensures "
+        "equal TPR/FPR across groups, preventing differential access to care."
     ),
     use_case_type=UseCaseType.INTERVENTION_TRIGGER,
-
-    # Thresholds (organization-specific)
-    thresholds={
-        "min_subgroup_n": 150,  # Higher threshold for external validity
-        "demographic_parity_ratio": (0.75, 1.33),  # Relaxed for intervention
-        "equalized_odds_diff": 0.08,  # Stricter due to high-stakes decision
-        "calibration_diff": 0.05,
-        "min_auroc": 0.70,
-        "max_missing_rate": 0.05,  # Stricter data quality
-    },
-
-    # Report metadata
     organization_name="Example Health System",
-    report_date="2025-01-15",
-    include_chai_mapping=True,
+    # Thresholds are evidence-based defaults; adjust for your context
+    thresholds={
+        "min_subgroup_n": 150,
+        "equalized_odds_diff": 0.08,
+        "min_auroc": 0.70,
+    },
 )
 
-# Run audit with bootstrap confidence intervals
 results = audit.run(bootstrap_ci=True, n_bootstrap=1000)
-
-# Export both personas
-results.to_pdf("technical_validation.pdf")  # Data scientist
-results.to_governance_pdf("governance_review.pdf")  # Governance
-results.to_pptx("committee_presentation.pptx")  # PowerPoint
+results.to_pdf("technical_validation.pdf")
+results.to_governance_pdf("governance_review.pdf")
+results.to_pptx("committee_presentation.pptx")
 ```
 
 ---
@@ -1099,7 +868,7 @@ If you use FairCareAI in your research or clinical implementation, please cite:
   author = {FairCareAI Contributors},
   year = {2026},
   url = {https://github.com/riccc-rush-lab/faircareai},
-  version = {0.2.1},
+  version = {0.2.6},
   note = {Python package for auditing ML fairness in healthcare}
 }
 ```
