@@ -111,8 +111,8 @@ Installs `xmlschema` to validate AI model card XML against the v0.1 XSD.
 
 ```bash
 git clone https://github.com/riccc-rush-lab/faircareai.git
-cd faircare
-pip install -e ".[dev]"
+cd faircareai
+uv sync --extra dev
 pre-commit install
 ```
 
@@ -127,9 +127,8 @@ FairCareAI is tested and supported on:
 | **Linux** (Ubuntu, Debian, RHEL, Arch) | 3.10, 3.11, 3.12 | ✅ Fully Supported |
 
 **Notes:**
-- PDF generation requires Playwright Chromium browser (auto-installed with `python -m playwright install chromium`)
-- No system dependencies required (all Python packages)
-- Identical setup process on all platforms
+- No system dependencies required beyond Python
+- Identical setup on all platforms
 - CI/CD tested on all platform combinations
 
 ### Requirements
@@ -235,10 +234,8 @@ FairCareAI supports two output personas to serve different audiences with tailor
 **Audience**: Data scientists, ML engineers, statisticians
 **Content**:
 - All 7 report sections (Executive Summary, Descriptive Stats, Overall Performance, Subgroup Performance, Fairness Assessment, Flags, Governance Decision)
-- Complete metric tables with confidence intervals
-- All visualizations (~15-20 figures)
+- All visualizations (~15-20 figures) with complete metric tables and bootstrap confidence intervals
 - Technical terminology and statistical detail
-- Bootstrap confidence intervals
 - **Length**: 15-20+ pages
 
 **Use when**:
@@ -642,7 +639,7 @@ Generated reports include 7 governance-aligned sections:
 4. **Subgroup Performance** - Performance by demographic group
 5. **Fairness Assessment** - Disparity analysis with confidence intervals
 6. **Limitations & Flags** - Warnings and considerations
-7. **Governance Decision Block** - Sign-off section for stakeholders
+7. **Governance Decision** - Sign-off section for stakeholders
 
 ### Threshold Configuration
 
@@ -696,7 +693,7 @@ faircareai audit predictions.parquet -p risk_score -t outcome --threshold 0.3
 | `-o`, `--output` | Output file path | `-o report.html` |
 | `--format` | Output format (html, pdf, pptx, json, png, model-card, ai-model-card, ai-model-card-json, raic-checklist, repro-bundle) | `--format pdf` |
 | `--persona` | Output persona (data_scientist, governance) | `--persona governance` |
-| `--include-optional` | Include OPTIONAL metrics (data scientist) | `--include-optional` |
+| `--include-optional` | Include optional metrics in data scientist output | `--include-optional` |
 | `--seed` | Random seed for bootstrap | `--seed 42` |
 | `--threshold` | Decision threshold (0-1) | `--threshold 0.3` |
 
@@ -779,10 +776,10 @@ results.to_pptx("committee_presentation.pptx")
 
 Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) and ensure:
 
-1. **Tests pass**: Run `pytest tests/` before submitting
-2. **Code follows style**: Use `ruff check src/` and `mypy src/`
-3. **Documentation updated**: Update README and docstrings
-4. **Scientific claims cited**: Include references for methodology
+1. **Tests pass**: `uv run pytest tests/`
+2. **Code follows style**: `uv run ruff check src/` and `uv run mypy src/faircareai`
+3. **Documentation updated**: Update README and docstrings for any changed behaviour
+4. **Scientific claims cited**: Include references for any new methodology
 
 ### Development Setup
 
@@ -865,7 +862,6 @@ This project was supported by the Institute for Translational Medicine (ITM) at 
   - [PDF_SETUP_GUIDE.md](docs/PDF_SETUP_GUIDE.md) - PDF export setup
   - [ARCHITECTURE.md](ARCHITECTURE.md) - System design and data flow
   - [CONTRIBUTING.md](CONTRIBUTING.md) - Development guidelines
-  - [Reports & audits](docs/reports/) - Internal reviews and verification artifacts
 - **Issues**: [GitHub Issues](https://github.com/riccc-rush-lab/faircareai/issues)
 - **Community Q&A**: Use [GitHub Discussions](https://github.com/riccc-rush-lab/faircareai/discussions) for questions and feature requests
 - **Code of Conduct**: See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
