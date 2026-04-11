@@ -55,7 +55,7 @@ dependencies = [
     # Note: Static exports use vl-convert-python (Altair) and Playwright (PDF)
 
     # Visualization - Static exports
-    "altair>=5.2.0,<7.0.0",
+    "altair>=6.0.0,<7.0.0",
     "vl-convert-python>=1.0.0,<2.0.0",
 
     # Visualization - Tables
