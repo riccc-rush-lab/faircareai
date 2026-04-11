@@ -63,7 +63,7 @@ results.to_governance_pdf("governance_report.pdf")             # 3-5 page govern
 results.to_pptx("committee_deck.pptx")                        # PowerPoint for meetings
 ```
 
-> **Package SUGGESTS, humans DECIDE.** All outputs are advisory. Final deployment decisions rest with clinical stakeholders and governance committees who understand the local context.
+> **All outputs are advisory.** Final deployment decisions rest with clinical stakeholders and governance committees who understand the local context.
 
 ---
 
@@ -105,7 +105,7 @@ PNG export uses Kaleido for static Plotly rendering (included in `faircare[expor
 pip install "faircare[compliance]"
 ```
 
-Installs `xmlschema` to validate AI model card XML against the v0.1 XSD.
+Installs `xmlschema` to validate model card XML against the v0.1 XSD.
 
 ### Development Installation
 
@@ -249,7 +249,7 @@ FairCareAI supports two output personas to serve different audiences with tailor
 **Purpose**: Streamlined executive review for decision-making
 **Audience**: Governance committees, clinical leadership, non-technical stakeholders
 **Content**:
-- 5 key sections (Executive Summary, Overall Performance, Subgroup Performance, Flags, Decision Block)
+- 5 key sections (Executive Summary, Overall Performance, Subgroup Performance, Flags, Governance Decision)
 - Standard figure set:
   - 4 overall performance figures (AUROC, Calibration, Brier Score, Classification Metrics)
   - 4 subgroup fairness figures per sensitive attribute (AUROC, Sensitivity/TPR, FPR, Selection Rate)
@@ -260,10 +260,10 @@ FairCareAI supports two output personas to serve different audiences with tailor
 - **Length**: 3-5 pages
 
 **Use when**:
-- Presenting to governance committees or IRB
-- Board meeting materials and executive briefings
-- Clinical deployment approval process
-- Non-technical stakeholder communication
+- Preparing materials for governance committee or IRB review
+- Briefing clinical leadership or a board
+- Seeking clinical deployment approval
+- Communicating with non-technical stakeholders
 
 ### API Examples
 
@@ -296,7 +296,7 @@ results.to_reproducibility_bundle("reproducibility.json")
 # PNG bundle of figures
 results.to_png("figures.zip", persona="governance")
 
-# Data scientist PNGs with OPTIONAL metrics
+# Data scientist PNGs with optional metrics
 results.to_png("figures_ds.zip", persona="data_scientist", include_optional=True)
 ```
 
@@ -343,7 +343,7 @@ All visualizations follow publication-ready standards:
 
 ## Fairness Metrics
 
-FairCareAI supports multiple fairness definitions and follows the **impossibility theorem** results (Chouldechova 2017, Kleinberg et al. 2017): when base rates differ by group, key fairness criteria cannot generally all be satisfied simultaneously (except special cases such as perfect prediction).
+FairCareAI supports multiple fairness definitions. No single metric is universally correct — the fairness impossibility theorem (Chouldechova 2017, Kleinberg et al. 2017) shows that when base rates differ across groups, most fairness criteria cannot all be satisfied simultaneously. Metric selection is a value judgment that must be made in clinical context.
 
 | Metric | Definition | Common Use Case | Clinical Interpretation |
 |--------|------------|-----------------|------------------------|
@@ -355,9 +355,7 @@ FairCareAI supports multiple fairness definitions and follows the **impossibilit
 
 ### Metric Selection Guidance
 
-Use `audit.suggest_fairness_metric()` for context-specific recommendations based on your use case type.
-
-**Example recommendations**:
+Use `audit.suggest_fairness_metric()` for context-specific recommendations based on your use case type:
 
 - **Intervention Trigger** (care management, outreach) → Equalized Odds
 - **Risk Communication** (patient counseling) → Calibration
@@ -435,7 +433,7 @@ results = audit.run(bootstrap_ci=True, n_bootstrap=1000) -> AuditResults
 
 #### `FairnessConfig`
 
-Configuration for fairness audit.
+Configuration for a fairness audit.
 
 ```python
 config = FairnessConfig(
@@ -523,7 +521,7 @@ results.to_json("metrics.json")
 results.to_html("report.html", open_browser=True)
 ```
 
-Reports include an **Audit Trail** section with audit ID, audit run timestamp, report generated time, model/version, and configuration context. JSON exports include `audit_metadata` with `audit_id` and `run_timestamp`.
+Reports include an **Audit Trail** section documenting the audit ID, run timestamp, model name and version, and configuration. JSON exports include the same metadata under `audit_metadata`.
 
 ### Enums
 
@@ -565,7 +563,7 @@ UseCaseType.DIAGNOSIS_SUPPORT
 
 ## Accessibility Features
 
-FairCareAI is designed with accessibility as a core principle, not an afterthought.
+Accessibility is a first-class concern in all FairCareAI output.
 
 ### WCAG 2.1 AA Compliance
 
@@ -615,9 +613,7 @@ All governance outputs use plain language principles:
 
 ## Governance Compliance
 
-FairCareAI generates structured governance artifacts that cover the core criteria for responsible AI deployment in clinical settings. The table below maps each criterion to the specific feature that addresses it.
-
-### Responsible AI Criteria Mapping
+FairCareAI generates structured governance artifacts that cover the core criteria for responsible AI deployment in clinical settings.
 
 | Governance Criterion | FairCareAI Feature | How FairCareAI addresses it |
 |---|---|---|
@@ -661,11 +657,15 @@ config = FairnessConfig(
 
 ---
 
-## Interactive Dashboard
+## CLI and Dashboard
 
-### Command-Line Interface (CLI)
+### Command Line
 
-FairCareAI provides a CLI for running audits directly from the terminal:
+```bash
+faircareai --help
+```
+
+Run audits directly from the terminal:
 
 ```bash
 # Audit a Parquet file (recommended for large datasets)
@@ -699,7 +699,7 @@ faircareai audit predictions.parquet -p risk_score -t outcome --threshold 0.3
 
 ### Streamlit Dashboard
 
-Launch the interactive Streamlit dashboard for visual analysis:
+Launch the dashboard for upload, analysis, and export without writing code:
 
 ```python
 import faircareai
@@ -778,7 +778,7 @@ Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTIN
 
 1. **Tests pass**: `uv run pytest tests/`
 2. **Code follows style**: `uv run ruff check src/` and `uv run mypy src/faircareai`
-3. **Documentation updated**: Update README and docstrings for any changed behaviour
+3. **Documentation updated**: Update README and docstrings for any changed behavior
 4. **Scientific claims cited**: Include references for any new methodology
 
 ### Development Setup
