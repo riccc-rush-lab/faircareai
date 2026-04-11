@@ -55,15 +55,25 @@ def _format_timestamp(ts: str | None) -> str:
         '2026-04-10T00:31:53-05:00' → 'April 10, 2026 at 12:31 AM'
         '2026-04-10' → 'April 10, 2026'
         None → 'April 10, 2026 at 12:31 AM'
+
+    Note: Uses Python arithmetic instead of %-d/%-I strftime modifiers,
+    which are Linux-only and raise ValueError on Windows.
     """
+
+    def _dt_to_str(dt: datetime, include_time: bool) -> str:
+        date_part = f"{dt.strftime('%B')} {dt.day}, {dt.year}"
+        if not include_time:
+            return date_part
+        hour = dt.hour % 12 or 12
+        ampm = "AM" if dt.hour < 12 else "PM"
+        return f"{date_part} at {hour}:{dt.strftime('%M')} {ampm}"
+
     if not ts:
-        dt = datetime.now().astimezone()
-        return dt.strftime("%B %-d, %Y at %-I:%M %p")
+        return _dt_to_str(datetime.now().astimezone(), include_time=True)
     try:
         dt = datetime.fromisoformat(ts)
-        if dt.hour == 0 and dt.minute == 0 and dt.second == 0 and dt.tzinfo is None:
-            return dt.strftime("%B %-d, %Y")
-        return dt.strftime("%B %-d, %Y at %-I:%M %p")
+        date_only = dt.hour == 0 and dt.minute == 0 and dt.second == 0 and dt.tzinfo is None
+        return _dt_to_str(dt, include_time=not date_only)
     except (ValueError, TypeError):
         return ts
 
