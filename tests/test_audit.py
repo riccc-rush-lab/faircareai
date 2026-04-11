@@ -141,7 +141,7 @@ class TestDataLoading:
     def test_unsupported_file_format(self, tmp_path: Path) -> None:
         """Test error on unsupported file format."""
         path = tmp_path / "test.json"
-        path.write_text('{"test": 1}')
+        path.write_text('{"test": 1}', encoding="utf-8")
         with pytest.raises(DataValidationError):
             FairCareAudit(
                 data=path,

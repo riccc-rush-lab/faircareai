@@ -236,16 +236,16 @@ def compute_disparities(
 
     # Define explicit schema to ensure consistent types
     schema = {
-        "reference_group": pl.Utf8,
-        "comparison_group": pl.Utf8,
-        "metric": pl.Utf8,
+        "reference_group": pl.String,
+        "comparison_group": pl.String,
+        "metric": pl.String,
         "reference_value": pl.Float64,
         "comparison_value": pl.Float64,
         "difference": pl.Float64,
         "diff_ci_lower": pl.Float64,
         "diff_ci_upper": pl.Float64,
         "ratio": pl.Float64,
-        "status": pl.Utf8,
+        "status": pl.String,
         "p_value": pl.Float64,
         "statistically_significant": pl.Int64,
     }

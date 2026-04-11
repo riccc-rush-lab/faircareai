@@ -94,8 +94,10 @@ def collect_data_scientist_figures(results: Any, include_optional: bool = False)
                 else None,
             )
             figures["Subgroup Performance Dashboard"] = create_subgroup_dashboard(subgroup_metrics)
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+
+            logging.getLogger("faircareai").debug("Subgroup dashboard skipped: %s", e)
 
     return figures
 
