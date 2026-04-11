@@ -70,7 +70,7 @@ results.to_pptx("committee_deck.pptx")                        # PowerPoint for m
 ## Key Features
 
 - **Two output personas** — Full technical reports for data scientists, streamlined 3-5 page reports for governance committees
-- **Discrimination, calibration & clinical utility** — AUROC, calibration curves, Brier score, DCA, and classification metrics informed by Van Calster et al. (2025)
+- **Discrimination, calibration & clinical utility** — AUROC, calibration curves, Brier score, decision curve analysis, and classification metrics at your chosen threshold
 - **Subgroup fairness analysis** — Performance broken down by race, sex, insurance, age, language, and custom attributes
 - **Plain-language explanations** — Every visualization includes clear explanations of what the metric means and why it matters
 - **Multiple export formats** — HTML, PDF, PowerPoint, PNG bundles, JSON, model cards, reproducibility bundles
@@ -253,7 +253,7 @@ FairCareAI supports two output personas to serve different audiences with tailor
 **Audience**: Governance committees, clinical leadership, non-technical stakeholders
 **Content**:
 - 5 key sections (Executive Summary, Overall Performance, Subgroup Performance, Flags, Decision Block)
-- Key figures drawing on Van Calster et al. (2025):
+- Standard figure set:
   - 4 overall performance figures (AUROC, Calibration, Brier Score, Classification Metrics)
   - 4 subgroup fairness figures per sensitive attribute (AUROC, Sensitivity/TPR, FPR, Selection Rate)
 - Plain language summaries with clinical interpretation
@@ -303,18 +303,13 @@ results.to_png("figures.zip", persona="governance")
 results.to_png("figures_ds.zip", persona="data_scientist", include_optional=True)
 ```
 
-Governance artifacts are designed with reference to the CHAI Applied Model Card template and RAIC Checkpoint 1 checklist — useful resources for teams working toward those frameworks:
-- [CHAI Applied Model Card documentation](https://mc.chai.org/v0.1/documentation.pdf)
-- [CHAI Applied Model Card schema](https://github.com/coalition-for-health-ai/mc-schema)
-- [CHAI RAIC Checkpoint 1 checklist PDF](https://chai.org/wp-content/uploads/2025/02/Responsible-AI-Checkpoint-1-CHAI-Responsible-AI-Checklist.pdf)
-
 `to_regulatory_checklist()` exports a structured checklist with criterion IDs and reviewer placeholders to support governance sign-off workflows.
 
 ---
 
 ## Fairness Visualizations
 
-FairCareAI's visualization approach is inspired by the performance assessment framework described in Van Calster et al. (2025). Each figure includes plain-language explanations suitable for clinical leadership and non-technical reviewers.
+FairCareAI generates a standard set of visualizations for healthcare AI performance assessment. Each figure includes plain-language explanations suitable for clinical leadership and non-technical reviewers.
 
 ### Overall Performance (4 figures)
 
@@ -623,19 +618,19 @@ All governance outputs use plain language principles:
 
 ## Governance Compliance
 
-FairCareAI's governance outputs are designed with reference to the [Coalition for Health AI (CHAI) RAIC Framework](https://www.chai.org/workgroup/responsible-ai/responsible-ai-checklists-raic) Checkpoint 1 criteria. The mapping below shows how FairCareAI addresses each criterion — teams should validate compliance against the official CHAI documentation for their specific context.
+FairCareAI generates structured governance artifacts that cover the core criteria for responsible AI deployment in clinical settings. The table below maps each criterion to the specific feature that addresses it.
 
 ### Responsible AI Criteria Mapping
 
-| CHAI Criterion | FairCareAI Feature | How FairCareAI addresses it |
-|----------------|-------------------|----------------|
-| **AC1.CR1** | Model identification | `model_name`, `model_version`, `intended_use` in config |
-| **AC1.CR3** | Intended population | `intended_population` field with validation |
-| **AC1.CR68** | Data quality checks | Missing data rate flags, minimum subgroup size checks |
-| **AC1.CR82** | Sample size adequacy | Configurable `min_subgroup_n` threshold with warnings |
-| **AC1.CR92** | Fairness metric selection | `primary_fairness_metric` with context-based recommendations |
-| **AC1.CR93** | Fairness justification | Required `fairness_justification` field (blocks run if missing) |
-| **AC1.CR100** | Out-of-scope documentation | `out_of_scope` list in config |
+| Governance Criterion | FairCareAI Feature | How FairCareAI addresses it |
+|---|---|---|
+| Model identification | Model identity fields | `model_name`, `model_version`, `intended_use` in config |
+| Intended population | Population scope | `intended_population` field with validation |
+| Data quality | Quality checks | Missing data rate flags, minimum subgroup size checks |
+| Sample size adequacy | Subgroup size | Configurable `min_subgroup_n` threshold with warnings |
+| Fairness metric selection | Metric recommendation | `primary_fairness_metric` with context-based recommendations |
+| Fairness justification | Justification field | Required `fairness_justification` field (blocks run if missing) |
+| Out-of-scope documentation | Scope limits | `out_of_scope` list in config |
 
 ### Governance Report Sections
 
