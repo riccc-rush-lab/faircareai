@@ -5,9 +5,9 @@
 [![Downloads](https://img.shields.io/pypi/dm/faircare.svg)](https://pypi.org/project/faircare/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![WCAG 2.1 AA](https://img.shields.io/badge/WCAG-2.1%20AA-green.svg)](https://www.w3.org/WAI/WCAG21/quickref/)
+[![Docs](https://img.shields.io/badge/docs-Usage%20Guide-blue)](https://github.com/riccc-rush-lab/faircareai/blob/main/docs/USAGE.md)
 
-**Fairness auditing for healthcare AI — from model predictions to governance-ready reports in minutes.**
+**Fairness auditing for clinical AI — two audiences, one run.**
 
 ---
 
@@ -29,7 +29,7 @@ Most hospitals have no standardized way to detect, quantify, or present these di
 | **Clinical informaticists** | Governance-ready reports with plain-language explanations suitable for IRB, ethics committees, or C-suite review |
 | **Governance committees** | Clear pass/warning/flag indicators, sign-off workflows, and audit trail documentation |
 | **Health equity researchers** | Publication-ready figures (WCAG 2.1 AA, colorblind-safe, 14px minimum) with full methodology citations |
-| **Regulatory & compliance teams** | Structured model cards, responsible AI checklists, and reproducibility bundles |
+| **Regulatory & compliance teams** | Structured model cards, responsible AI checklists, XML schema validation, and reproducibility bundles |
 
 ---
 
@@ -73,7 +73,7 @@ results.to_pptx("committee_deck.pptx")                        # PowerPoint for m
 - **Discrimination, calibration & clinical utility** — AUROC, calibration curves, Brier score, decision curve analysis, and classification metrics at your chosen threshold
 - **Subgroup fairness analysis** — Performance broken down by race, sex, insurance, age, language, and custom attributes
 - **Plain-language explanations** — Every visualization includes clear explanations of what the metric means and why it matters
-- **Multiple export formats** — HTML, PDF, PowerPoint, PNG bundles, JSON, model cards, reproducibility bundles
+- **Multiple export formats** — HTML, PDF, PowerPoint, PNG bundles, JSON, model cards, responsible AI checklists, and reproducibility bundles
 - **Publication-ready** — Minimum 14px fonts, WCAG 2.1 AA compliant, colorblind-safe Okabe-Ito palette
 - **HIPAA-friendly** — All computation runs locally, no cloud dependencies, no data leaves your machine
 - **Interactive dashboard** — Streamlit UI for upload, analysis, and export without writing code

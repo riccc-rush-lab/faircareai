@@ -1,0 +1,31 @@
+name: Documentation improvement
+description: Report a gap, error, or unclear section in the docs
+title: "[Docs]: "
+labels:
+  - documentation
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve the documentation.
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: Which file or section needs improvement?
+      placeholder: "docs/USAGE.md — FairnessConfig section"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is unclear or missing?
+      description: Describe the gap, error, or confusing section.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+      description: Optional. Provide a draft or example of better wording.
