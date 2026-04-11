@@ -12,7 +12,7 @@ organizations interpret results based on their clinical context.
 from importlib.metadata import PackageNotFoundError, version
 
 try:
-    __version__ = version("faircareai")
+    __version__ = version("faircare")
 except PackageNotFoundError:
     __version__ = "0.0.0-dev"
 

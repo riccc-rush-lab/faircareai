@@ -281,8 +281,9 @@ def render_sign_off_section(result: Any) -> None:
 
     def _record_decision(decision: str) -> dict:
         """Record a governance decision and return the sign-off record."""
-        checklist_status = {label: st.session_state.get(f"signoff_{key}", False)
-                           for key, label in checks}
+        checklist_status = {
+            label: st.session_state.get(f"signoff_{key}", False) for key, label in checks
+        }
         record = {
             "decision": decision,
             "reviewer": reviewer_name,

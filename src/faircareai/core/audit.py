@@ -416,8 +416,7 @@ class FairCareAudit:
                     else:
                         raise ConfigurationError(
                             "selection",
-                            f"Invalid index: {sel}. "
-                            f"Valid: 0-{len(self._suggestions) - 1}",
+                            f"Invalid index: {sel}. Valid: 0-{len(self._suggestions) - 1}",
                         )
                 elif 1 <= sel <= len(self._suggestions):
                     # Legacy 1-based indexing

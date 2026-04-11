@@ -10,7 +10,6 @@ Tests cover:
 """
 
 import logging
-import tempfile
 from pathlib import Path
 
 from faircareai.core.logging import (
@@ -112,18 +111,13 @@ class TestConfigureLogging:
         ]
         assert len(stream_handlers) == 0
 
-    def test_file_handler_added(self) -> None:
+    def test_file_handler_added(self, tmp_path: Path) -> None:
         """Test that file handler is added when filename provided."""
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
-            filename = f.name
-
-        try:
-            configure_logging(filename=filename)
-            logger = logging.getLogger(LOGGER_NAME)
-            file_handlers = [h for h in logger.handlers if isinstance(h, logging.FileHandler)]
-            assert len(file_handlers) == 1
-        finally:
-            Path(filename).unlink(missing_ok=True)
+        filename = str(tmp_path / "audit.log")
+        configure_logging(filename=filename)
+        logger = logging.getLogger(LOGGER_NAME)
+        file_handlers = [h for h in logger.handlers if isinstance(h, logging.FileHandler)]
+        assert len(file_handlers) == 1
 
     def test_custom_format_string(self) -> None:
         """Test that custom format string is used."""
@@ -292,23 +286,17 @@ class TestLoggerIntegration:
         output = stream.getvalue()
         assert test_message in output
 
-    def test_file_logging_writes_to_file(self) -> None:
+    def test_file_logging_writes_to_file(self, tmp_path: Path) -> None:
         """Test that file logging writes messages to file."""
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
-            filename = f.name
+        filename = str(tmp_path / "audit.log")
+        configure_logging(level=logging.INFO, stream=False, filename=filename)
+        logger = logging.getLogger(LOGGER_NAME)
 
-        try:
-            configure_logging(level=logging.INFO, stream=False, filename=filename)
-            logger = logging.getLogger(LOGGER_NAME)
+        test_message = "File log test message"
+        logger.info(test_message)
 
-            test_message = "File log test message"
-            logger.info(test_message)
+        # Close handlers to flush
+        for handler in logger.handlers:
+            handler.close()
 
-            # Close handlers to flush
-            for handler in logger.handlers:
-                handler.close()
-
-            content = Path(filename).read_text()
-            assert test_message in content
-        finally:
-            Path(filename).unlink(missing_ok=True)
+        assert test_message in Path(filename).read_text()

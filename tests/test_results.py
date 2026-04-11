@@ -11,7 +11,6 @@ Tests cover:
 """
 
 import json
-import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -424,48 +423,33 @@ class TestToJson:
             governance_recommendation={"n_pass": 10},
         )
 
-    def test_to_json_creates_file(self, export_results: AuditResults) -> None:
+    def test_to_json_creates_file(self, export_results: AuditResults, tmp_path: Path) -> None:
         """Test that to_json creates a file."""
-        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
-            path = Path(f.name)
+        path = tmp_path / "results.json"
+        result = export_results.to_json(path)
+        assert result == path
+        assert path.exists()
 
-        try:
-            result = export_results.to_json(path)
-            assert result == path
-            assert path.exists()
-        finally:
-            path.unlink(missing_ok=True)
-
-    def test_to_json_valid_content(self, export_results: AuditResults) -> None:
+    def test_to_json_valid_content(self, export_results: AuditResults, tmp_path: Path) -> None:
         """Test that to_json produces valid JSON."""
-        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
-            path = Path(f.name)
+        path = tmp_path / "results.json"
+        export_results.to_json(path)
+        content = json.loads(path.read_text())
+        assert "config" in content
+        assert "descriptive_stats" in content
+        assert "overall_performance" in content
+        assert content["config"]["model_name"] == "Export Test Model"
 
-        try:
-            export_results.to_json(path)
-            content = json.loads(path.read_text())
-            assert "config" in content
-            assert "descriptive_stats" in content
-            assert "overall_performance" in content
-            assert content["config"]["model_name"] == "Export Test Model"
-        finally:
-            path.unlink(missing_ok=True)
-
-    def test_to_json_includes_config(self, export_results: AuditResults) -> None:
+    def test_to_json_includes_config(self, export_results: AuditResults, tmp_path: Path) -> None:
         """Test that JSON includes all config fields."""
-        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
-            path = Path(f.name)
-
-        try:
-            export_results.to_json(path)
-            content = json.loads(path.read_text())
-            config = content["config"]
-            assert config["model_name"] == "Export Test Model"
-            assert config["model_version"] == "3.0.0"
-            assert config["primary_fairness_metric"] == "calibration"
-            assert config["use_case_type"] == "risk_communication"
-        finally:
-            path.unlink(missing_ok=True)
+        path = tmp_path / "results.json"
+        export_results.to_json(path)
+        content = json.loads(path.read_text())
+        config = content["config"]
+        assert config["model_name"] == "Export Test Model"
+        assert config["model_version"] == "3.0.0"
+        assert config["primary_fairness_metric"] == "calibration"
+        assert config["use_case_type"] == "risk_communication"
 
 
 class TestMakeJsonSerializable:

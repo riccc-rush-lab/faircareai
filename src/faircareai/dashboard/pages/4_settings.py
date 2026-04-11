@@ -66,6 +66,7 @@ def render_settings_page() -> None:
     col1, col2 = st.columns(2)
 
     with col1:
+
         def _sync_threshold() -> None:
             """Clear analysis slider key so it picks up the new default."""
             st.session_state.pop("analysis_threshold", None)
@@ -188,9 +189,16 @@ def render_settings_page() -> None:
 
     with col1:
         if st.button("Clear Uploaded Data", type="secondary", use_container_width=True):
-            for key in ["uploaded_data", "audit_result", "data_source", "data_validated",
-                        "selected_demographic_cols", "audit_threshold",
-                        "target_col", "pred_col"]:
+            for key in [
+                "uploaded_data",
+                "audit_result",
+                "data_source",
+                "data_validated",
+                "selected_demographic_cols",
+                "audit_threshold",
+                "target_col",
+                "pred_col",
+            ]:
                 st.session_state.pop(key, None)
             st.success("Uploaded data cleared")
             st.rerun()

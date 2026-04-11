@@ -10,7 +10,6 @@ Tests cover:
 - Convenience methods (to_governance_html, to_governance_pdf)
 """
 
-import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -97,51 +96,33 @@ class TestToHtmlPersona:
 
     @patch("faircareai.reports.generator.generate_html_report")
     def test_default_persona_is_data_scientist(
-        self, mock_generate: MagicMock, basic_results: AuditResults
+        self, mock_generate: MagicMock, basic_results: AuditResults, tmp_path: Path
     ) -> None:
         """Test that default persona is DATA_SCIENTIST."""
         mock_generate.return_value = "<html>report</html>"
-
-        with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as f:
-            path = Path(f.name)
-
-        try:
-            basic_results.to_html(path)
-            mock_generate.assert_called_once()
-        finally:
-            path.unlink(missing_ok=True)
+        path = tmp_path / "report.html"
+        basic_results.to_html(path)
+        mock_generate.assert_called_once()
 
     @patch("faircareai.reports.generator.generate_governance_html_report")
     def test_governance_persona_routes_correctly(
-        self, mock_generate: MagicMock, basic_results: AuditResults
+        self, mock_generate: MagicMock, basic_results: AuditResults, tmp_path: Path
     ) -> None:
         """Test that governance persona routes to governance generator."""
         mock_generate.return_value = "<html>governance report</html>"
-
-        with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as f:
-            path = Path(f.name)
-
-        try:
-            basic_results.to_html(path, persona="governance")
-            mock_generate.assert_called_once()
-        finally:
-            path.unlink(missing_ok=True)
+        path = tmp_path / "report.html"
+        basic_results.to_html(path, persona="governance")
+        mock_generate.assert_called_once()
 
     @patch("faircareai.reports.generator.generate_governance_html_report")
     def test_governance_enum_works(
-        self, mock_generate: MagicMock, basic_results: AuditResults
+        self, mock_generate: MagicMock, basic_results: AuditResults, tmp_path: Path
     ) -> None:
         """Test that OutputPersona.GOVERNANCE enum works."""
         mock_generate.return_value = "<html>governance report</html>"
-
-        with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as f:
-            path = Path(f.name)
-
-        try:
-            basic_results.to_html(path, persona=OutputPersona.GOVERNANCE)
-            mock_generate.assert_called_once()
-        finally:
-            path.unlink(missing_ok=True)
+        path = tmp_path / "report.html"
+        basic_results.to_html(path, persona=OutputPersona.GOVERNANCE)
+        mock_generate.assert_called_once()
 
 
 class TestToPdfPersona:
@@ -165,35 +146,23 @@ class TestToPdfPersona:
 
     @patch("faircareai.reports.generator.generate_pdf_report")
     def test_default_persona_is_data_scientist(
-        self, mock_generate: MagicMock, basic_results: AuditResults
+        self, mock_generate: MagicMock, basic_results: AuditResults, tmp_path: Path
     ) -> None:
         """Test that default persona is DATA_SCIENTIST."""
         mock_generate.return_value = Path("/tmp/test.pdf")
-
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
-            path = Path(f.name)
-
-        try:
-            basic_results.to_pdf(path)
-            mock_generate.assert_called_once()
-        finally:
-            path.unlink(missing_ok=True)
+        path = tmp_path / "report.pdf"
+        basic_results.to_pdf(path)
+        mock_generate.assert_called_once()
 
     @patch("faircareai.reports.generator.generate_governance_pdf_report")
     def test_governance_persona_routes_correctly(
-        self, mock_generate: MagicMock, basic_results: AuditResults
+        self, mock_generate: MagicMock, basic_results: AuditResults, tmp_path: Path
     ) -> None:
         """Test that governance persona routes to governance generator."""
         mock_generate.return_value = Path("/tmp/test.pdf")
-
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
-            path = Path(f.name)
-
-        try:
-            basic_results.to_pdf(path, persona="governance")
-            mock_generate.assert_called_once()
-        finally:
-            path.unlink(missing_ok=True)
+        path = tmp_path / "report.pdf"
+        basic_results.to_pdf(path, persona="governance")
+        mock_generate.assert_called_once()
 
 
 class TestConvenienceMethods:
@@ -217,33 +186,23 @@ class TestConvenienceMethods:
 
     @patch("faircareai.reports.generator.generate_governance_html_report")
     def test_to_governance_html(
-        self, mock_generate: MagicMock, basic_results: AuditResults
+        self, mock_generate: MagicMock, basic_results: AuditResults, tmp_path: Path
     ) -> None:
         """Test to_governance_html convenience method."""
         mock_generate.return_value = "<html>governance</html>"
-
-        with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as f:
-            path = Path(f.name)
-
-        try:
-            basic_results.to_governance_html(path)
-            mock_generate.assert_called_once()
-        finally:
-            path.unlink(missing_ok=True)
+        path = tmp_path / "report.html"
+        basic_results.to_governance_html(path)
+        mock_generate.assert_called_once()
 
     @patch("faircareai.reports.generator.generate_governance_pdf_report")
-    def test_to_governance_pdf(self, mock_generate: MagicMock, basic_results: AuditResults) -> None:
+    def test_to_governance_pdf(
+        self, mock_generate: MagicMock, basic_results: AuditResults, tmp_path: Path
+    ) -> None:
         """Test to_governance_pdf convenience method."""
         mock_generate.return_value = Path("/tmp/test.pdf")
-
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
-            path = Path(f.name)
-
-        try:
-            basic_results.to_governance_pdf(path)
-            mock_generate.assert_called_once()
-        finally:
-            path.unlink(missing_ok=True)
+        path = tmp_path / "report.pdf"
+        basic_results.to_governance_pdf(path)
+        mock_generate.assert_called_once()
 
 
 class TestGovernanceOverallFigures:
@@ -418,18 +377,14 @@ class TestIntegrationDataScientist:
 
         return audit.run(bootstrap_ci=False)
 
-    def test_data_scientist_html_export(self, full_audit_results: AuditResults) -> None:
+    def test_data_scientist_html_export(
+        self, full_audit_results: AuditResults, tmp_path: Path
+    ) -> None:
         """Test full data scientist HTML export."""
-        with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as f:
-            path = Path(f.name)
-
-        try:
-            result_path = full_audit_results.to_html(path)
-            assert result_path.exists()
-            content = path.read_text()
-            assert "Integration Test Model" in content
-        finally:
-            path.unlink(missing_ok=True)
+        path = tmp_path / "report.html"
+        result_path = full_audit_results.to_html(path)
+        assert result_path.exists()
+        assert "Integration Test Model" in path.read_text()
 
 
 class TestIntegrationGovernance:
@@ -453,43 +408,30 @@ class TestIntegrationGovernance:
 
         return audit.run(bootstrap_ci=False)
 
-    def test_governance_html_export(self, full_audit_results: AuditResults) -> None:
+    def test_governance_html_export(self, full_audit_results: AuditResults, tmp_path: Path) -> None:
         """Test governance HTML export."""
-        with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as f:
-            path = Path(f.name)
+        path = tmp_path / "report.html"
+        result_path = full_audit_results.to_governance_html(path)
+        assert result_path.exists()
+        assert "Governance Test Model" in path.read_text()
 
-        try:
-            result_path = full_audit_results.to_governance_html(path)
-            assert result_path.exists()
-            content = path.read_text()
-            assert "Governance Test Model" in content
-        finally:
-            path.unlink(missing_ok=True)
-
-    def test_governance_html_has_fewer_sections(self, full_audit_results: AuditResults) -> None:
+    def test_governance_html_has_fewer_sections(
+        self, full_audit_results: AuditResults, tmp_path: Path
+    ) -> None:
         """Test that governance HTML has fewer sections than data scientist HTML."""
-        with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as f:
-            ds_path = Path(f.name)
-        with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as f:
-            gov_path = Path(f.name)
+        ds_path = tmp_path / "ds.html"
+        gov_path = tmp_path / "gov.html"
 
-        try:
-            full_audit_results.to_html(ds_path)  # Data scientist (default)
-            full_audit_results.to_governance_html(gov_path)  # Governance
+        full_audit_results.to_html(ds_path)  # Data scientist (default)
+        full_audit_results.to_governance_html(gov_path)  # Governance
 
-            ds_content = ds_path.read_text()
-            gov_content = gov_path.read_text()
+        # Governance output should have fewer section headers
+        # Data scientist has 7 sections, governance has 5
+        ds_section_count = ds_path.read_text().lower().count("<h2")
+        gov_section_count = gov_path.read_text().lower().count("<h2")
 
-            # Governance output should have fewer section headers
-            # Data scientist has 7 sections, governance has 5
-            ds_section_count = ds_content.lower().count("<h2")
-            gov_section_count = gov_content.lower().count("<h2")
-
-            # Governance should have fewer or equal sections
-            assert gov_section_count <= ds_section_count
-        finally:
-            ds_path.unlink(missing_ok=True)
-            gov_path.unlink(missing_ok=True)
+        # Governance should have fewer or equal sections
+        assert gov_section_count <= ds_section_count
 
 
 class TestMetricDisplayConfig:
@@ -617,63 +559,45 @@ class TestIncludeOptionalParameter:
 
     @patch("faircareai.reports.generator.generate_html_report")
     def test_to_html_passes_metric_config(
-        self, mock_generate: MagicMock, basic_results: AuditResults
+        self, mock_generate: MagicMock, basic_results: AuditResults, tmp_path: Path
     ) -> None:
         """Test that to_html passes MetricDisplayConfig to generator."""
         mock_generate.return_value = "<html>report</html>"
-
-        with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as f:
-            path = Path(f.name)
-
-        try:
-            basic_results.to_html(path, include_optional=True)
-            mock_generate.assert_called_once()
-            # Check metric_config was passed
-            call_kwargs = mock_generate.call_args[1]
-            assert "metric_config" in call_kwargs
-            assert call_kwargs["metric_config"].show_optional is True
-        finally:
-            path.unlink(missing_ok=True)
+        path = tmp_path / "report.html"
+        basic_results.to_html(path, include_optional=True)
+        mock_generate.assert_called_once()
+        # Check metric_config was passed
+        call_kwargs = mock_generate.call_args[1]
+        assert "metric_config" in call_kwargs
+        assert call_kwargs["metric_config"].show_optional is True
 
     @patch("faircareai.reports.generator.generate_html_report")
     def test_to_html_default_no_optional(
-        self, mock_generate: MagicMock, basic_results: AuditResults
+        self, mock_generate: MagicMock, basic_results: AuditResults, tmp_path: Path
     ) -> None:
         """Test that to_html default does not include optional."""
         mock_generate.return_value = "<html>report</html>"
-
-        with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as f:
-            path = Path(f.name)
-
-        try:
-            basic_results.to_html(path)  # No include_optional
-            mock_generate.assert_called_once()
-            call_kwargs = mock_generate.call_args[1]
-            assert "metric_config" in call_kwargs
-            assert call_kwargs["metric_config"].show_optional is False
-        finally:
-            path.unlink(missing_ok=True)
+        path = tmp_path / "report.html"
+        basic_results.to_html(path)  # No include_optional
+        mock_generate.assert_called_once()
+        call_kwargs = mock_generate.call_args[1]
+        assert "metric_config" in call_kwargs
+        assert call_kwargs["metric_config"].show_optional is False
 
     @patch("faircareai.reports.generator.generate_governance_html_report")
     def test_governance_ignores_include_optional(
-        self, mock_generate: MagicMock, basic_results: AuditResults
+        self, mock_generate: MagicMock, basic_results: AuditResults, tmp_path: Path
     ) -> None:
         """Test that governance persona ignores include_optional."""
         mock_generate.return_value = "<html>governance</html>"
-
-        with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as f:
-            path = Path(f.name)
-
-        try:
-            # Even with include_optional=True, governance should use RECOMMENDED only
-            basic_results.to_html(path, persona="governance", include_optional=True)
-            mock_generate.assert_called_once()
-            call_kwargs = mock_generate.call_args[1]
-            assert "metric_config" in call_kwargs
-            # Governance config should always have show_optional=False
-            assert call_kwargs["metric_config"].show_optional is False
-        finally:
-            path.unlink(missing_ok=True)
+        path = tmp_path / "report.html"
+        # Even with include_optional=True, governance should use RECOMMENDED only
+        basic_results.to_html(path, persona="governance", include_optional=True)
+        mock_generate.assert_called_once()
+        call_kwargs = mock_generate.call_args[1]
+        assert "metric_config" in call_kwargs
+        # Governance config should always have show_optional=False
+        assert call_kwargs["metric_config"].show_optional is False
 
 
 # =============================================================================

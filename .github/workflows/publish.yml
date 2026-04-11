@@ -68,7 +68,7 @@ jobs:
         run: uv python install 3.12
 
       - name: Wait for package availability
-        run: uv run python -c "import time; time.sleep(60)"
+        run: uv run --no-project python -c "import time; time.sleep(60)"
 
       - name: Create venv and install from TestPyPI
         run: |
@@ -76,12 +76,12 @@ jobs:
           uv pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ faircare
 
       - name: Verify import
-        run: uv run python -c "import faircareai; print(getattr(faircareai, '__version__', 'unknown'))"
+        run: uv run --no-project python -c "import faircareai; print(getattr(faircareai, '__version__', 'unknown'))"
 
       - name: Smoke test report generation
         shell: bash
         run: |
-          uv run python - <<'PY'
+          uv run --no-project python - <<'PY'
           from __future__ import annotations
 
           from pathlib import Path

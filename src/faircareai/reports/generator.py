@@ -77,6 +77,7 @@ def _format_timestamp(ts: str | None) -> str:
     except (ValueError, TypeError):
         return ts
 
+
 _PLOTLYJS_CDN_URL_FALLBACK = "https://cdn.plot.ly/plotly-2.27.0.min.js"
 _PLOTLY_CDN_SCRIPT_RE = re.compile(
     r"<script[^>]+src=[\"']https://cdn\.plot\.ly/plotly-[^\"']+\.min\.js[\"'][^>]*></script>",

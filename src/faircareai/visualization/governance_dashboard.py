@@ -1488,7 +1488,9 @@ def _create_subgroup_bar_chart(
             text=text_vals,
             textposition="outside" if use_outside else "inside",
             textfont=dict(
-                color=["#333333"] * len(colors) if use_outside else [get_contrast_text_color(c) for c in colors],
+                color=["#333333"] * len(colors)
+                if use_outside
+                else [get_contrast_text_color(c) for c in colors],
                 size=14,
             ),
         )

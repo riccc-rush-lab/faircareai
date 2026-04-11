@@ -540,17 +540,17 @@ def render_optional_section_html(content: str, title: str = "OPTIONAL Metrics") 
 # Professional publication-grade palette for slides and printed reports.
 # Paired with Okabe-Ito for colorblind safety; all meet WCAG 2.1 AA on white.
 PUBLICATION_COLORS = {
-    "navy": "#303C6C",        # Primary headings / title bars
-    "dark_blue": "#3C5A99",   # Secondary headings
-    "blue": "#4A90D9",        # Data series 1
-    "red": "#BE1E2D",         # Alert / fail status
-    "green": "#2E7D32",       # Pass status
-    "amber": "#C49000",       # Warning status (WCAG AA on white ≥ 4.5:1)
-    "teal": "#00695C",        # Data series 2
-    "purple": "#5C3D7A",      # Data series 3
-    "gray": "#546E7A",        # Annotations / secondary text
+    "navy": "#303C6C",  # Primary headings / title bars
+    "dark_blue": "#3C5A99",  # Secondary headings
+    "blue": "#4A90D9",  # Data series 1
+    "red": "#BE1E2D",  # Alert / fail status
+    "green": "#2E7D32",  # Pass status
+    "amber": "#C49000",  # Warning status (WCAG AA on white ≥ 4.5:1)
+    "teal": "#00695C",  # Data series 2
+    "purple": "#5C3D7A",  # Data series 3
+    "gray": "#546E7A",  # Annotations / secondary text
     "light_gray": "#ECEFF1",  # Subtle backgrounds
-    "text": "#212121",        # Body text
+    "text": "#212121",  # Body text
     "text_secondary": "#546E7A",
     "background": "#FFFFFF",
 }

@@ -122,7 +122,9 @@ def _auto_evaluable_items(results: AuditResults) -> dict[str, dict[str, Any]]:
 
 
 def _load_checklist_criteria() -> list[dict[str, Any]]:
-    data_path = resources.files("faircareai.data").joinpath("regulatory_checklist/checkpoint_1.json")
+    data_path = resources.files("faircareai.data").joinpath(
+        "regulatory_checklist/checkpoint_1.json"
+    )
     payload = json.loads(data_path.read_text(encoding="utf-8"))
     criteria = payload.get("criteria", payload)
     if not isinstance(criteria, list):
@@ -131,7 +133,9 @@ def _load_checklist_criteria() -> list[dict[str, Any]]:
 
 
 def _load_checklist_metadata() -> dict[str, str]:
-    data_path = resources.files("faircareai.data").joinpath("regulatory_checklist/checkpoint_1.json")
+    data_path = resources.files("faircareai.data").joinpath(
+        "regulatory_checklist/checkpoint_1.json"
+    )
     payload = json.loads(data_path.read_text(encoding="utf-8"))
 
     source_url = payload.get(

@@ -1831,7 +1831,7 @@ def create_fairness_radar(
                     dash=dash_patterns[i % len(dash_patterns)],
                 ),
                 opacity=0.4,
-                fillcolor=f"rgba{tuple([int(GROUP_COLORS[i % len(GROUP_COLORS)].lstrip('#')[j:j+2], 16) for j in (0, 2, 4)] + [0.08])}",
+                fillcolor=f"rgba{tuple([int(GROUP_COLORS[i % len(GROUP_COLORS)].lstrip('#')[j : j + 2], 16) for j in (0, 2, 4)] + [0.08])}",
             )
         )
 

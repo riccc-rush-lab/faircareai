@@ -52,7 +52,9 @@ def test_structured_model_card_xml_export(model_card_results: AuditResults, tmp_
     assert root.find("m:Bibliography", ns) is not None
 
 
-def test_structured_model_card_json_export(model_card_results: AuditResults, tmp_path: Path) -> None:
+def test_structured_model_card_json_export(
+    model_card_results: AuditResults, tmp_path: Path
+) -> None:
     path = tmp_path / "model_card.json"
     model_card_results.to_structured_model_card_json(path)
     assert path.exists()
@@ -61,7 +63,9 @@ def test_structured_model_card_json_export(model_card_results: AuditResults, tmp
     assert "metadata" in payload
 
 
-def test_structured_model_card_xml_validation(model_card_results: AuditResults, tmp_path: Path) -> None:
+def test_structured_model_card_xml_validation(
+    model_card_results: AuditResults, tmp_path: Path
+) -> None:
     xmlschema = pytest.importorskip("xmlschema")
     path = tmp_path / "model_card.xml"
     model_card_results.to_structured_model_card(path)

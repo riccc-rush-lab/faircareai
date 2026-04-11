@@ -311,7 +311,9 @@ def render_upload_page() -> None:
 
         if target_col == pred_col:
             st.error("Outcome and prediction columns must be different.")
-            announce_status_change("Validation error: same column selected twice", priority="assertive")
+            announce_status_change(
+                "Validation error: same column selected twice", priority="assertive"
+            )
             return
 
         is_valid, errors = validate_mapped_data(df, target_col, pred_col)

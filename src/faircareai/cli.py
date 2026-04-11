@@ -284,12 +284,8 @@ def audit(
             n_accept = min(3, len(suggestions))
             accepted_names = [s["suggested_name"] for s in suggestions[:n_accept]]
             console.print(f"  Found {len(suggestions)} suggested attributes")
-            console.print(
-                f"  [yellow]Auto-accepting first {n_accept}:[/yellow] {accepted_names}"
-            )
-            console.print(
-                "  [dim]Use -a flag to specify attributes explicitly.[/dim]"
-            )
+            console.print(f"  [yellow]Auto-accepting first {n_accept}:[/yellow] {accepted_names}")
+            console.print("  [dim]Use -a flag to specify attributes explicitly.[/dim]")
             indices: list[int | str] = list(range(n_accept))
             audit_obj.accept_suggested_attributes(indices)
         else:
@@ -302,8 +298,7 @@ def audit(
         model_name=model_name,
         primary_fairness_metric=metric_enum,
         fairness_justification=(
-            f"CLI audit using {fairness_metric}. "
-            "Review and adjust based on clinical context."
+            f"CLI audit using {fairness_metric}. Review and adjust based on clinical context."
         ),
     )
 

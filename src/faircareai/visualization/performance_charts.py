@@ -687,7 +687,12 @@ def plot_decision_curve(
         yaxis_title=y_axis_title,
         height=500,
         xaxis=dict(range=[0, 1], tickformat=".0%"),
-        yaxis=dict(range=[min(-0.1, min(nb_model) * 1.1 if nb_model else -0.5), max(nb_model) * 1.3 if nb_model else 0.5]),
+        yaxis=dict(
+            range=[
+                min(-0.1, min(nb_model) * 1.1 if nb_model else -0.5),
+                max(nb_model) * 1.3 if nb_model else 0.5,
+            ]
+        ),
         margin=dict(r=80),
         meta={"description": alt_text},  # WCAG 2.1 screen reader support
     )
