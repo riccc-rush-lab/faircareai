@@ -45,17 +45,17 @@ classifiers = [
 ]
 
 dependencies = [
-    # Data processing - pin major versions for stability
-    "polars>=0.20.0,<1.0.0",
-    "pyarrow>=14.0.0,<18.0.0",
-    "numpy>=1.26.0,<2.0.0",  # Improved Apple Silicon support, avoid numpy 2.0
+    # Data processing
+    "polars>=0.20.0,<2.0.0",
+    "pyarrow>=14.0.0,<24.0.0",
+    "numpy>=1.26.0,<3.0.0",
 
     # Visualization - Interactive
-    "plotly>=5.18.0,<6.0.0",
+    "plotly>=5.18.0,<7.0.0",
     # Note: Static exports use vl-convert-python (Altair) and Playwright (PDF)
 
     # Visualization - Static exports
-    "altair>=5.2.0,<6.0.0",
+    "altair>=5.2.0,<7.0.0",
     "vl-convert-python>=1.0.0,<2.0.0",
 
     # Visualization - Tables
@@ -68,13 +68,13 @@ dependencies = [
 
     # Dashboard
     "streamlit>=1.30.0,<2.0.0",
-    "streamlit-extras>=0.3.0,<1.0.0",
+    "streamlit-extras>=0.3.0,<2.0.0",
 
 	# Reporting
 	"jinja2>=3.1.0,<4.0.0",
 
 	# Utilities
-	"rich>=13.0.0,<14.0.0",
+	"rich>=13.0.0,<15.0.0",
 	"click>=8.1.0,<9.0.0",
     "typing_extensions>=4.0.0,<5.0.0",  # For NotRequired in Python 3.10
 ]
@@ -83,8 +83,8 @@ dependencies = [
 # Export capabilities: PDF and PowerPoint generation
 export = [
 	"playwright>=1.40.0,<2.0.0",  # PDF rendering via browser automation
-	"python-pptx>=0.6.21,<1.0.0",  # PowerPoint report export
-	"kaleido>=0.2.1,<1.0.0",  # Static Plotly image export (PNG)
+	"python-pptx>=0.6.21,<2.0.0",  # PowerPoint report export
+	"kaleido>=0.2.1,<2.0.0",  # Static Plotly image export (PNG)
 ]
 
 compliance = [
@@ -226,7 +226,7 @@ known-first-party = ["faircareai"]
 # Coverage Configuration
 # ==============================================================================
 [tool.coverage.run]
-source = ["src/faircareai"]
+source = ["faircareai"]
 branch = true
 omit = [
     "*/tests/*",

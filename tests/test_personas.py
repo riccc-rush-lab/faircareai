@@ -384,7 +384,7 @@ class TestIntegrationDataScientist:
         path = tmp_path / "report.html"
         result_path = full_audit_results.to_html(path)
         assert result_path.exists()
-        assert "Integration Test Model" in path.read_text()
+        assert "Integration Test Model" in path.read_text(encoding="utf-8")
 
 
 class TestIntegrationGovernance:
@@ -413,7 +413,7 @@ class TestIntegrationGovernance:
         path = tmp_path / "report.html"
         result_path = full_audit_results.to_governance_html(path)
         assert result_path.exists()
-        assert "Governance Test Model" in path.read_text()
+        assert "Governance Test Model" in path.read_text(encoding="utf-8")
 
     def test_governance_html_has_fewer_sections(
         self, full_audit_results: AuditResults, tmp_path: Path
@@ -427,8 +427,8 @@ class TestIntegrationGovernance:
 
         # Governance output should have fewer section headers
         # Data scientist has 7 sections, governance has 5
-        ds_section_count = ds_path.read_text().lower().count("<h2")
-        gov_section_count = gov_path.read_text().lower().count("<h2")
+        ds_section_count = ds_path.read_text(encoding="utf-8").lower().count("<h2")
+        gov_section_count = gov_path.read_text(encoding="utf-8").lower().count("<h2")
 
         # Governance should have fewer or equal sections
         assert gov_section_count <= ds_section_count

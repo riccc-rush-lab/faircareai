@@ -299,4 +299,4 @@ class TestLoggerIntegration:
         for handler in logger.handlers:
             handler.close()
 
-        assert test_message in Path(filename).read_text()
+        assert test_message in Path(filename).read_text(encoding="utf-8")

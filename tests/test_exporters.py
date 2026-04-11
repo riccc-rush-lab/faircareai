@@ -72,7 +72,7 @@ class TestExportPlotlyFigure:
 
         assert result == output_path
         assert output_path.exists()
-        content = output_path.read_text()
+        content = output_path.read_text(encoding="utf-8")
         assert "<html>" in content or "plotly" in content.lower()
 
     def test_export_json(self, simple_plotly_figure: go.Figure, temp_output_dir: Path) -> None:
@@ -83,7 +83,7 @@ class TestExportPlotlyFigure:
         assert result == output_path
         assert output_path.exists()
         # Verify valid JSON
-        data = json.loads(output_path.read_text())
+        data = json.loads(output_path.read_text(encoding="utf-8"))
         assert "data" in data
         assert "layout" in data
 
@@ -118,7 +118,7 @@ class TestExportPlotlyFigure:
             result = export_plotly_figure(simple_plotly_figure, output_path)
             assert result == output_path
             assert output_path.exists()
-            content = output_path.read_text()
+            content = output_path.read_text(encoding="utf-8")
             assert "<svg" in content
         except FigureExportError as e:
             if "kaleido" in str(e).lower():
@@ -162,7 +162,7 @@ class TestExportPlotlyFigure:
         assert result == output_path
         assert output_path.exists()
         # Should be valid JSON despite .txt extension
-        json.loads(output_path.read_text())
+        json.loads(output_path.read_text(encoding="utf-8"))
 
     def test_invalid_format_raises_error(
         self, simple_plotly_figure: go.Figure, temp_output_dir: Path
@@ -224,7 +224,7 @@ class TestExportAltairChart:
 
         assert result == output_path
         assert output_path.exists()
-        content = output_path.read_text()
+        content = output_path.read_text(encoding="utf-8")
         assert "vega" in content.lower() or "html" in content.lower()
 
     def test_export_json(self, simple_altair_chart: alt.Chart, temp_output_dir: Path) -> None:
@@ -235,7 +235,7 @@ class TestExportAltairChart:
         assert result == output_path
         assert output_path.exists()
         # Verify valid Vega-Lite JSON
-        data = json.loads(output_path.read_text())
+        data = json.loads(output_path.read_text(encoding="utf-8"))
         assert "$schema" in data or "mark" in data
 
     def test_export_png_with_vl_convert(
@@ -267,7 +267,7 @@ class TestExportAltairChart:
             result = export_altair_chart(simple_altair_chart, output_path)
             assert result == output_path
             assert output_path.exists()
-            content = output_path.read_text()
+            content = output_path.read_text(encoding="utf-8")
             assert "<svg" in content
         except FigureExportError as e:
             if "vl-convert" in str(e).lower():
