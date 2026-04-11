@@ -1,7 +1,8 @@
 # FairCareAI
 
 [![CI](https://github.com/riccc-rush-lab/faircareai/actions/workflows/ci.yml/badge.svg)](https://github.com/riccc-rush-lab/faircareai/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/faircareai.svg)](https://pypi.org/project/faircareai/)
+[![PyPI](https://img.shields.io/pypi/v/faircare.svg)](https://pypi.org/project/faircare/)
+[![Downloads](https://img.shields.io/pypi/dm/faircare.svg)](https://pypi.org/project/faircare/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![WCAG 2.1 AA](https://img.shields.io/badge/WCAG-2.1%20AA-green.svg)](https://www.w3.org/WAI/WCAG21/quickref/)
