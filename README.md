@@ -12,7 +12,7 @@
 
 ## Why FairCareAI Exists
 
-Healthcare AI models can quietly harm patients when they perform differently across demographic groups. A readmission model that catches 85% of cases overall might catch only 60% for Black patients. A sepsis alert that works well for insured populations might misfire for Medicaid patients. These disparities are invisible without deliberate measurement.
+Healthcare AI models can quietly harm patients when overall performance masks meaningful differences across patient subgroups. A model that looks strong in aggregate may perform substantially worse for certain populations — and those gaps are invisible without deliberate measurement.
 
 Most hospitals have no standardized way to detect, quantify, or present these disparities to governance committees. Data scientists know the statistics but lack tools to produce the publication-ready, plain-language reports that clinical leadership needs to make deployment decisions.
 
