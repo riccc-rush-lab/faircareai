@@ -132,6 +132,14 @@ protected_data/
 .claude/
 .playwright-mcp/
 .vincent/
+CLAUDE.md
+
+# Internal project management (local only)
+todos/
+docs/reports/
+docs/solutions/
+docs/references/
+docs/RELEASE_CHECKLIST.md
 
 # Generated outputs
 verification_outputs/

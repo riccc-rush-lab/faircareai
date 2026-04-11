@@ -860,7 +860,7 @@ This project was supported by the Institute for Translational Medicine (ITM) at 
   - [USAGE.md](docs/USAGE.md) - Quickstart and end-to-end usage
   - [METHODOLOGY.md](docs/METHODOLOGY.md) - Scientific foundation and fairness theory
   - [PDF_SETUP_GUIDE.md](docs/PDF_SETUP_GUIDE.md) - PDF export setup
-  - [ARCHITECTURE.md](ARCHITECTURE.md) - System design and data flow
+  - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - System design and data flow
   - [CONTRIBUTING.md](CONTRIBUTING.md) - Development guidelines
 - **Issues**: [GitHub Issues](https://github.com/riccc-rush-lab/faircareai/issues)
 - **Community Q&A**: Use [GitHub Discussions](https://github.com/riccc-rush-lab/faircareai/discussions) for questions and feature requests

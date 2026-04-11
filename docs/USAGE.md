@@ -9,19 +9,19 @@ Complete guide to using FairCareAI for healthcare AI fairness auditing.
 ### Basic Installation
 
 ```bash
-pip install faircareai
+pip install faircare
 ```
 
 ### With Export Capabilities (PDF/PPTX)
 
 ```bash
-pip install "faircareai[export]"
+pip install "faircare[export]"
 ```
 
 ### With Compliance Validation (CHAI XML Schema)
 
 ```bash
-pip install "faircareai[compliance]"
+pip install "faircare[compliance]"
 ```
 
 ### Development Installation
@@ -1093,6 +1093,6 @@ pip install python-pptx
 
 ## Next Steps
 
-- [Architecture](../ARCHITECTURE.md) - System design
+- [Architecture](ARCHITECTURE.md) - System design
 - [Methodology](METHODOLOGY.md) - Scientific foundation
 - [Contributing](../CONTRIBUTING.md) - Development guide
