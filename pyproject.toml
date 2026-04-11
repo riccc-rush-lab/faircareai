@@ -51,7 +51,7 @@ dependencies = [
     "numpy>=1.26.0,<3.0.0",
 
     # Visualization - Interactive
-    "plotly>=5.18.0,<7.0.0",
+    "plotly>=6.7.0,<7.0.0",
     # Note: Static exports use vl-convert-python (Altair) and Playwright (PDF)
 
     # Visualization - Static exports
