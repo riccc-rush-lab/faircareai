@@ -68,22 +68,22 @@ jobs:
         run: uv python install 3.12
 
       - name: Wait for package availability
-        run: python -c "import time; time.sleep(60)"
+        run: uv run python -c "import time; time.sleep(60)"
 
-      - name: Install from TestPyPI
-        run: uv pip install --system --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ faircare
+      - name: Create venv and install from TestPyPI
+        run: |
+          uv venv .venv
+          uv pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ faircare
 
       - name: Verify import
-        run: python -c "import faircareai; print(getattr(faircareai, '__version__', 'unknown'))"
+        run: uv run python -c "import faircareai; print(getattr(faircareai, '__version__', 'unknown'))"
 
       - name: Smoke test report generation
         shell: bash
         run: |
-          set -euxo pipefail
-          python - <<'PY'
+          uv run python - <<'PY'
           from __future__ import annotations
 
-          import tempfile
           from pathlib import Path
 
           import numpy as np
@@ -118,9 +118,10 @@ jobs:
           audit.add_sensitive_attribute(name="race", column="race", reference="White")
           results = audit.run(bootstrap_ci=False)
 
-          out_path = Path(tempfile.gettempdir()) / "faircareai_release_smoke_report.html"
+          out_path = Path("smoke_report.html")
           results.to_html(out_path)
-          assert out_path.exists(), f"Expected report at {out_path}"
+          assert out_path.exists(), "Expected report at " + str(out_path)
+          print("Smoke test passed:", out_path)
           PY
 
   publish-pypi:
