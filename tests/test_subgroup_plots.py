@@ -14,7 +14,6 @@ Tests cover:
 import numpy as np
 from plotly.graph_objects import Figure
 
-from faircareai.visualization.utils import add_source_annotation
 from faircareai.visualization.subgroup_plots import (
     _generate_auroc_forest_alt_text,
     _generate_calibration_alt_text,
@@ -26,6 +25,7 @@ from faircareai.visualization.subgroup_plots import (
     create_risk_distribution_plot,
     create_subgroup_dashboard,
 )
+from faircareai.visualization.utils import add_source_annotation
 
 
 class TestGenerateAurocForestAltText:

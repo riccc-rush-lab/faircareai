@@ -200,8 +200,8 @@ def render_settings_page() -> None:
             # Keep only essential session state
             keys_to_keep = {"audience_mode"}
             keys_to_delete = [k for k in st.session_state.keys() if k not in keys_to_keep]
-            for key in keys_to_delete:
-                del st.session_state[key]
+            for k in keys_to_delete:
+                del st.session_state[k]
             st.success("Settings reset to defaults")
             st.rerun()
 

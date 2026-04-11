@@ -11,7 +11,6 @@ Tests cover:
 - Legacy AuditResult dataclass
 """
 
-import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -117,41 +116,38 @@ class TestDataLoading:
         )
         assert len(audit.df) == len(sample_data)
 
-    def test_load_parquet_file(self, sample_data: pl.DataFrame) -> None:
+    def test_load_parquet_file(self, sample_data: pl.DataFrame, tmp_path: Path) -> None:
         """Test loading parquet file."""
-        with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:
-            sample_data.write_parquet(f.name)
-            audit = FairCareAudit(
-                data=f.name,
-                pred_col="y_prob",
-                target_col="y_true",
-            )
-            assert len(audit.df) == len(sample_data)
-            Path(f.name).unlink()
+        path = tmp_path / "test.parquet"
+        sample_data.write_parquet(path)
+        audit = FairCareAudit(
+            data=path,
+            pred_col="y_prob",
+            target_col="y_true",
+        )
+        assert len(audit.df) == len(sample_data)
 
-    def test_load_csv_file(self, sample_data: pl.DataFrame) -> None:
+    def test_load_csv_file(self, sample_data: pl.DataFrame, tmp_path: Path) -> None:
         """Test loading CSV file."""
-        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w") as f:
-            sample_data.write_csv(f.name)
-            audit = FairCareAudit(
-                data=f.name,
+        path = tmp_path / "test.csv"
+        sample_data.write_csv(path)
+        audit = FairCareAudit(
+            data=path,
+            pred_col="y_prob",
+            target_col="y_true",
+        )
+        assert len(audit.df) == len(sample_data)
+
+    def test_unsupported_file_format(self, tmp_path: Path) -> None:
+        """Test error on unsupported file format."""
+        path = tmp_path / "test.json"
+        path.write_text('{"test": 1}')
+        with pytest.raises(DataValidationError):
+            FairCareAudit(
+                data=path,
                 pred_col="y_prob",
                 target_col="y_true",
             )
-            assert len(audit.df) == len(sample_data)
-            Path(f.name).unlink()
-
-    def test_unsupported_file_format(self) -> None:
-        """Test error on unsupported file format."""
-        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
-            Path(f.name).write_text('{"test": 1}')
-            with pytest.raises(DataValidationError):
-                FairCareAudit(
-                    data=f.name,
-                    pred_col="y_prob",
-                    target_col="y_true",
-                )
-            Path(f.name).unlink()
 
     def test_unsupported_data_type(self) -> None:
         """Test error on unsupported data type."""

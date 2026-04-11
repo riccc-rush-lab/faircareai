@@ -24,6 +24,13 @@ from faircareai.visualization.exporters import (
     export_plotly_figure,
     get_recommended_export_settings,
 )
+from faircareai.visualization.subgroup_plots import (
+    create_auroc_forest_plot,
+    create_calibration_plot_by_subgroup,
+    create_decision_curve_by_subgroup,
+    create_risk_distribution_plot,
+    create_subgroup_dashboard,
+)
 from faircareai.visualization.themes import (
     GHOSTING_CONFIG,
     SEMANTIC_COLORS,
@@ -31,13 +38,6 @@ from faircareai.visualization.themes import (
     GhostingConfig,
     get_plotly_template,
     register_plotly_template,
-)
-from faircareai.visualization.subgroup_plots import (
-    create_auroc_forest_plot,
-    create_calibration_plot_by_subgroup,
-    create_decision_curve_by_subgroup,
-    create_risk_distribution_plot,
-    create_subgroup_dashboard,
 )
 
 __all__ = [
