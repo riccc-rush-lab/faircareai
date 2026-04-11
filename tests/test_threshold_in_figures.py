@@ -251,7 +251,7 @@ class TestThresholdInFigures:
             assert html_path.exists()
 
             # Read HTML and check for threshold
-            html_content = html_path.read_text()
+            html_content = html_path.read_text(encoding="utf-8")
 
             # Should contain custom threshold in text
             assert "0.414" in html_content or "0.41" in html_content or "41%" in html_content

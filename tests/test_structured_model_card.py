@@ -58,7 +58,7 @@ def test_structured_model_card_json_export(
     path = tmp_path / "model_card.json"
     model_card_results.to_structured_model_card_json(path)
     assert path.exists()
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     assert "AppliedModelCard" in payload
     assert "metadata" in payload
 

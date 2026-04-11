@@ -434,7 +434,7 @@ class TestToJson:
         """Test that to_json produces valid JSON."""
         path = tmp_path / "results.json"
         export_results.to_json(path)
-        content = json.loads(path.read_text())
+        content = json.loads(path.read_text(encoding="utf-8"))
         assert "config" in content
         assert "descriptive_stats" in content
         assert "overall_performance" in content
@@ -444,7 +444,7 @@ class TestToJson:
         """Test that JSON includes all config fields."""
         path = tmp_path / "results.json"
         export_results.to_json(path)
-        content = json.loads(path.read_text())
+        content = json.loads(path.read_text(encoding="utf-8"))
         config = content["config"]
         assert config["model_name"] == "Export Test Model"
         assert config["model_version"] == "3.0.0"

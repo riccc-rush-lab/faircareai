@@ -766,4 +766,4 @@ def adjust_pvalues(
     elif method == "fdr_bh":
         return adjust_pvalues_fdr_bh(pvalues)
     else:
-        return pvalues.copy()
+        return np.array(pvalues)

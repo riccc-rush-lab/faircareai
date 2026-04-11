@@ -30,7 +30,7 @@ def checklist_results() -> AuditResults:
 def test_regulatory_checklist_full_length(checklist_results: AuditResults, tmp_path: Path) -> None:
     path = tmp_path / "regulatory_checklist.json"
     checklist_results.to_regulatory_checklist(path)
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     criteria = payload["criteria"]
     assert len(criteria) == 178
 

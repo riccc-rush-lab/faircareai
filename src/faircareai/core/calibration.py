@@ -293,7 +293,7 @@ def compute_group_calibration(
             n_bins=n_bins,
             n_bootstrap=n_bootstrap,
             alpha=alpha,
-            random_state=rng.integers(0, 2**31) if random_state is not None else None,
+            random_state=int(rng.integers(0, 2**31)) if random_state is not None else None,
         )
 
         group_results[str(group)] = CalibrationResult(

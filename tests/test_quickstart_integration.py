@@ -90,7 +90,7 @@ class TestQuickstartIntegration:
         html_path = results.to_html(output_dir / "full_report.html")
         assert html_path.exists()
         assert html_path.stat().st_size > 0
-        content = html_path.read_text()
+        content = html_path.read_text(encoding="utf-8")
         assert "Quickstart Integration Test" in content
 
         # Test governance HTML export
@@ -109,7 +109,7 @@ class TestQuickstartIntegration:
         # Test JSON export
         json_path = results.to_json(output_dir / "results.json")
         assert json_path.exists()
-        with open(json_path) as f:
+        with open(json_path, encoding="utf-8") as f:
             data = json.load(f)
             assert "config" in data
             assert "overall_performance" in data
@@ -202,7 +202,7 @@ class TestQuickstartIntegration:
             assert path.stat().st_size > 0, f"{format_name} export is empty"
 
         # Verify JSON structure
-        with open(exports["json"]) as f:
+        with open(exports["json"], encoding="utf-8") as f:
             json_data = json.load(f)
             assert "config" in json_data
             assert "overall_performance" in json_data
