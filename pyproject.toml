@@ -48,7 +48,7 @@ dependencies = [
     # Data processing
     "polars>=0.20.0,<2.0.0",
     "pyarrow>=14.0.0,<24.0.0",
-    "numpy>=1.26.0,<3.0.0",
+    "numpy>=2.2.6,<3.0.0",
 
     # Visualization - Interactive
     "plotly>=5.18.0,<7.0.0",
