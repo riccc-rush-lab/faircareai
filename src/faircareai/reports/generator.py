@@ -1077,17 +1077,26 @@ def _generate_descriptive_section(results: "AuditResults") -> str:
 
         for group_name, group_data in groups.items():
             outcome_data = outcome_groups.get(group_name, {})
+            suppressed = group_data.get("suppressed_in_reports", False)
+            suppression_label = (
+                f"suppressed (n<{results.config.get_threshold('suppress_cell_n', 11)})"
+            )
             rr = outcome_data.get("rate_ratio")
-            rr_str = f"{rr:.2f}" if rr is not None else "ref"
+            rr_str = suppression_label if suppressed else (f"{rr:.2f}" if rr is not None else "ref")
             ref_marker = " (ref)" if group_name == reference else ""
+            n_cell = suppression_label if suppressed else f"{group_data.get('n', 0):,}"
+            pct_cell = suppression_label if suppressed else group_data.get("pct_fmt", "N/A")
+            outcome_cell = (
+                suppression_label if suppressed else outcome_data.get("outcome_rate_pct", "N/A")
+            )
 
             attr_rows += f"""
             <tr>
                 <td>{attr_name}</td>
                 <td>{group_name}{ref_marker}</td>
-                <td>{group_data.get("n", 0):,}</td>
-                <td>{group_data.get("pct_fmt", "N/A")}</td>
-                <td>{outcome_data.get("outcome_rate_pct", "N/A")}</td>
+                <td>{n_cell}</td>
+                <td>{pct_cell}</td>
+                <td>{outcome_cell}</td>
                 <td>{rr_str}</td>
             </tr>
             """
@@ -1405,22 +1414,36 @@ def _generate_subgroup_section(results: "AuditResults") -> str:
             if not isinstance(group_data, dict) or "error" in group_data:
                 continue
 
+            suppressed = group_data.get("suppressed_in_reports", False)
+            suppression_label = (
+                f"suppressed (n<{results.config.get_threshold('suppress_cell_n', 11)})"
+            )
+
             auroc = group_data.get("auroc")
             auroc_str = f"{auroc:.3f}" if auroc is not None else "N/A"
             tpr = group_data.get("tpr")
             tpr_str = f"{tpr * 100:.1f}%" if tpr is not None else "N/A"
             fpr = group_data.get("fpr")
             fpr_str = f"{fpr * 100:.1f}%" if fpr is not None else "N/A"
+            oe = group_data.get("oe_ratio")
+            oe_str = f"{oe:.2f}" if oe is not None else "N/A"
+            slope = group_data.get("calibration_slope")
+            slope_str = f"{slope:.2f}" if slope is not None else "N/A"
             ref_marker = " (ref)" if group_data.get("is_reference") else ""
+            if suppressed:
+                auroc_str = tpr_str = fpr_str = oe_str = slope_str = suppression_label
+            n_cell = suppression_label if suppressed else f"{group_data.get('n', 0):,}"
 
             subgroup_rows += f"""
             <tr>
                 <td>{attr_name}</td>
                 <td>{group_name}{ref_marker}</td>
-                <td>{group_data.get("n", 0):,}</td>
+                <td>{n_cell}</td>
                 <td>{auroc_str}</td>
                 <td>{tpr_str}</td>
                 <td>{fpr_str}</td>
+                <td>{oe_str}</td>
+                <td>{slope_str}</td>
             </tr>
             """
 
@@ -1504,6 +1527,8 @@ def _generate_subgroup_section(results: "AuditResults") -> str:
                     <th>AUROC<br><span style="font-weight: normal; font-size: 14px;">(accuracy)</span></th>
                     <th>TPR<br><span style="font-weight: normal; font-size: 14px;">(sensitivity)</span></th>
                     <th>FPR<br><span style="font-weight: normal; font-size: 14px;">(false alarms)</span></th>
+                    <th>O:E<br><span style="font-weight: normal; font-size: 14px;">(ideal 1.0)</span></th>
+                    <th>Calibration Slope<br><span style="font-weight: normal; font-size: 14px;">(ideal 1.0)</span></th>
                 </tr>
             </thead>
             <tbody>
@@ -1528,7 +1553,7 @@ def _generate_subgroup_section(results: "AuditResults") -> str:
 
 def _generate_fairness_section(results: "AuditResults") -> str:
     """Generate Section 5: Fairness Assessment with metric-specific content."""
-    from faircareai.core.config import FairnessMetric
+    from faircareai.core.config import FairnessMetric, UseCaseType
 
     config = results.config
     metric = config.primary_fairness_metric
@@ -1617,9 +1642,18 @@ def _generate_fairness_section(results: "AuditResults") -> str:
         cal = summary.get("calibration", {})
         cal_diff = cal.get("worst_diff", 0) if cal else 0
         cal_pass = cal.get("within_threshold", True) if cal else True
+        suppressed_groups = attr_data.get("suppressed_groups", [])
 
         # Helper to format cell with highlighting for primary metric
-        def format_cell(value: float, passed: bool, is_primary: bool) -> str:
+        def format_cell(
+            value: float,
+            passed: bool,
+            is_primary: bool,
+            suppressed: bool = bool(suppressed_groups),
+        ) -> str:
+            if suppressed:
+                label = f"suppressed (n<{config.get_threshold('suppress_cell_n', 11)})"
+                return f'<td>{label}</td><td class="warn">REVIEW</td>'
             status = "PASS" if passed else "FLAG"
             status_class = "pass" if passed else "fail"
             highlight = ' style="background: #E3F2FD; font-weight: bold;"' if is_primary else ""
@@ -1645,6 +1679,17 @@ def _generate_fairness_section(results: "AuditResults") -> str:
 
     # Primary metric badge color
     metric_color = "#0072B2" if metric else "#6B6B6B"
+    intervention_callout = ""
+    if config.use_case_type == UseCaseType.INTERVENTION_TRIGGER:
+        intervention_callout = """
+        <div class="note" style="border-left-color: #D55E00;">
+            <strong>Intervention-trigger review:</strong>
+            This model can determine who receives a clinical intervention, so reviewers should
+            assess both benefit and burden. The Equal Opportunity column reports TPR differences
+            (who with the outcome is reached); the Equalized Odds column additionally incorporates
+            FPR differences (who may receive unnecessary intervention).
+        </div>
+        """
 
     return f"""
     <section class="section">
@@ -1657,6 +1702,8 @@ def _generate_fairness_section(results: "AuditResults") -> str:
             <p style="margin: 6px 0 0 0;"><strong>Threshold:</strong> {selected_info["threshold_note"]}</p>
             <p style="margin: 6px 0 0 0;"><strong>Justification:</strong> {justification}</p>
         </div>
+
+        {intervention_callout}
 
         <h3>All Fairness Metrics by Attribute</h3>
         <p style="color: #6B6B6B; font-size: 14px; margin-bottom: 16px;">
@@ -1704,8 +1751,12 @@ def _generate_flags_section(results: "AuditResults") -> str:
     for flag in results.flags:
         severity = flag.get("severity", "warning")
         flag_class = "flag-error" if severity == "error" else "flag-warning"
-        message = flag.get("message", "")
-        details = flag.get("details", "")
+        if flag.get("suppressed_in_reports", False):
+            message = "Small-group finding suppressed for publication safety"
+            details = f"Aggregate value withheld because n<{results.config.get_threshold('suppress_cell_n', 11)}."
+        else:
+            message = flag.get("message", "")
+            details = flag.get("details", "")
 
         flag_parts.append(f"""
         <div class="flag-item {flag_class}">
@@ -2398,6 +2449,14 @@ def _add_subgroup_slide(prs: Any, results: "AuditResults") -> None:
     audit = results._audit
     if not getattr(audit, "sensitive_attributes", None):
         return
+    if any(
+        group.get("suppressed_in_reports", False)
+        for payload in results.subgroup_performance.values()
+        if isinstance(payload, dict)
+        for group in payload.get("groups", {}).values()
+        if isinstance(group, dict)
+    ):
+        return
     try:
         from faircareai.metrics.subgroup_performance import compute_subgroup_metrics_suite
         from faircareai.visualization.subgroup_plots import create_subgroup_dashboard
@@ -2700,6 +2759,13 @@ def _generate_governance_html(results: "AuditResults") -> str:
     else:
         metric_name, metric_desc = ("Not Specified", "No primary fairness metric was selected")
     metric_justification = results.config.fairness_justification or "Not provided"
+    intervention_callout = (
+        "Intervention-trigger review: Equal Opportunity (TPR parity) checks equitable access "
+        "to beneficial interventions; Equalized Odds adds the secondary false-positive burden check."
+        if str(getattr(results.config.use_case_type, "value", results.config.use_case_type))
+        == "intervention_trigger"
+        else ""
+    )
 
     audit_trail_html = _render_audit_trail_html(
         results,
@@ -3075,6 +3141,7 @@ def _generate_governance_html(results: "AuditResults") -> str:
                 <p style="margin: 8px 0; color: #191919;"><strong>Definition:</strong> {metric_desc}</p>
                 <p style="margin: 8px 0 0 0; color: #6B6B6B; font-size: 14px;"><strong>Justification:</strong> {metric_justification}</p>
             </div>
+            {f'<div class="note" style="border-left-color: #D55E00;"><strong>{intervention_callout}</strong></div>' if intervention_callout else ""}
 
             <p style="color: #6B6B6B; font-size: 16px; margin-bottom: 20px;">
                 Performance varies across demographic groups. Charts corresponding to your selected metric are

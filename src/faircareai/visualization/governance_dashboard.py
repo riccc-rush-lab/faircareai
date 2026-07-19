@@ -610,6 +610,8 @@ def create_fairness_dashboard(results: "AuditResults") -> go.Figure:
                 continue
             if not isinstance(group_data, dict) or "error" in group_data:
                 continue
+            if group_data.get("suppressed_in_reports", False):
+                continue
 
             label = f"{attr_name}: {group_name}"
             all_groups.append(label)
@@ -904,6 +906,8 @@ def plot_subgroup_comparison(
             if group_name in ("attribute", "threshold", "reference", "disparities"):
                 continue
             if not isinstance(group_data, dict) or "error" in group_data:
+                continue
+            if group_data.get("suppressed_in_reports", False):
                 continue
 
             groups.append(group_name)
@@ -1331,6 +1335,8 @@ def create_governance_subgroup_figures(
 
         for group_name, group_data in groups_data.items():
             if not isinstance(group_data, dict) or "error" in group_data:
+                continue
+            if group_data.get("suppressed_in_reports", False):
                 continue
             # Skip metadata keys that aren't actual groups
             if group_name in ("attribute", "threshold", "reference", "disparities"):

@@ -11,6 +11,7 @@ Tests cover:
 - Legacy AuditResult dataclass
 """
 
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +21,7 @@ import pytest
 from faircareai.core.audit import AuditResult, FairAudit, FairCareAudit
 from faircareai.core.config import FairnessConfig, FairnessMetric, UseCaseType
 from faircareai.core.exceptions import ConfigurationError, DataValidationError
+from faircareai.core.results import AuditResults
 
 
 @pytest.fixture
@@ -92,6 +94,69 @@ class TestFairCareAuditInit:
             threshold=0.3,
         )
         assert audit.threshold == 0.3
+
+    def test_include_unknown_materializes_missing_group(self) -> None:
+        data = pl.DataFrame(
+            {"y_true": [0, 1, 0, 1], "y_prob": [0.1, 0.9, 0.2, 0.8], "race": ["A", None, "A", None]}
+        )
+        audit = FairCareAudit(data, "y_prob", "y_true", include_unknown=True)
+        audit.add_sensitive_attribute("race")
+        assert audit.df["race"].to_list() == ["A", "Unknown", "A", "Unknown"]
+        summary = audit._compute_descriptive_statistics()
+        assert summary["attribute_distributions"]["race"]["missing_rate"] == 0.5
+        assert "Unknown" in summary["attribute_distributions"]["race"]["groups"]
+
+    def test_exclude_unknown_leaves_missing_values(self) -> None:
+        data = pl.DataFrame({"y_true": [0, 1], "y_prob": [0.1, 0.9], "race": ["A", None]})
+        audit = FairCareAudit(data, "y_prob", "y_true", include_unknown=False)
+        audit.add_sensitive_attribute("race")
+        assert audit.df["race"].null_count() == 1
+
+    def test_constructor_registers_sensitive_attributes(self, sample_data: pl.DataFrame) -> None:
+        """Explicit constructor mappings are registered with derived references."""
+        audit = FairCareAudit(
+            data=sample_data,
+            pred_col="y_prob",
+            target_col="y_true",
+            sensitive_attrs={"race": "race", "gender": "sex"},
+        )
+        assert [(a.name, a.column) for a in audit.sensitive_attributes] == [
+            ("race", "race"),
+            ("gender", "sex"),
+        ]
+        assert all(a.reference is not None for a in audit.sensitive_attributes)
+
+    def test_auto_accept_registers_detected_attributes(
+        self, sample_data: pl.DataFrame, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Opt-in auto acceptance is visible and registers each suggestion once."""
+        audit = FairCareAudit(
+            data=sample_data,
+            pred_col="y_prob",
+            target_col="y_true",
+            sensitive_attrs={"race": "race"},
+            auto_accept=True,
+        )
+        assert len({a.name for a in audit.sensitive_attributes}) == len(audit.sensitive_attributes)
+        assert "auto-accept" in capsys.readouterr().out.lower()
+
+    def test_include_unknown_is_stored_for_later_analysis(self, sample_data: pl.DataFrame) -> None:
+        audit = FairCareAudit(sample_data, "y_prob", "y_true", include_unknown=False)
+        assert audit.include_unknown is False
+
+    def test_constructor_does_not_warn_for_internal_default_config(
+        self, sample_data: pl.DataFrame
+    ) -> None:
+        """Creating an audit without config does not emit the assignment warning."""
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            FairCareAudit(sample_data, "y_prob", "y_true")
+        assert not [w for w in caught if "sensitive attribute" in str(w.message).lower()]
+
+    def test_assigning_config_without_attributes_warns(self, sample_data: pl.DataFrame) -> None:
+        audit = FairCareAudit(sample_data, "y_prob", "y_true")
+        with pytest.warns(UserWarning, match="sensitive attribute"):
+            audit.config = FairnessConfig(model_name="Configured later")
 
 
 class TestDataLoading:
@@ -232,8 +297,10 @@ class TestSuggestAttributes:
         suggestions = audit.suggest_attributes(display=False)
         assert isinstance(suggestions, list)
 
-    def test_display_option(self, sample_data: pl.DataFrame) -> None:
-        """Test display option works without error."""
+    def test_display_option(
+        self, sample_data: pl.DataFrame, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Suggestions print directly so notebook users see them."""
         audit = FairCareAudit(
             data=sample_data,
             pred_col="y_prob",
@@ -241,13 +308,60 @@ class TestSuggestAttributes:
         )
         # Should not raise
         audit.suggest_attributes(display=True)
+        assert "SUGGESTED SENSITIVE ATTRIBUTES" in capsys.readouterr().out
+
+    def test_numeric_age_suggests_default_age_band(self) -> None:
+        df = pl.DataFrame(
+            {
+                "y_prob": [0.1, 0.2, 0.3, 0.4],
+                "y_true": [0, 0, 1, 1],
+                "age": [17, 18, 40, 65],
+            }
+        )
+        audit = FairCareAudit(df, "y_prob", "y_true")
+        suggestions = audit.suggest_attributes(display=False)
+        age = next(s for s in suggestions if s["suggested_name"] == "age_group")
+        assert age["detected_column"] == "age_band"
+        assert age["unique_values"] == ["0-17", "18-39", "40-64", "65+"]
+
+        audit.accept_suggested_attributes(["age_group"])
+        assert audit.df["age_band"].to_list() == ["0-17", "18-39", "40-64", "65+"]
+
+    def test_numeric_age_supports_custom_bins_and_labels(self) -> None:
+        df = pl.DataFrame(
+            {
+                "y_prob": [0.1, 0.2, 0.3],
+                "y_true": [0, 1, 1],
+                "age": [20, 50, 80],
+            }
+        )
+        audit = FairCareAudit(df, "y_prob", "y_true")
+        suggestions = audit.suggest_attributes(
+            display=False,
+            age_bins=[29, 59],
+            age_labels=["young", "middle", "older"],
+        )
+        age = next(s for s in suggestions if s["suggested_name"] == "age_group")
+        assert age["unique_values"] == ["young", "middle", "older"]
+        audit.accept_suggested_attributes(["age_group"])
+        assert audit.df["age_band"].to_list() == ["young", "middle", "older"]
+
+    @pytest.mark.parametrize(
+        ("bins", "labels"),
+        [([39, 17], ["a", "b", "c"]), ([17, 39], ["a", "b"])],
+    )
+    def test_invalid_custom_age_bands_raise(self, bins: list[int], labels: list[str]) -> None:
+        df = pl.DataFrame({"y_prob": [0.2, 0.8], "y_true": [0, 1], "age": [20, 70]})
+        audit = FairCareAudit(df, "y_prob", "y_true")
+        with pytest.raises(ConfigurationError, match="age"):
+            audit.suggest_attributes(display=False, age_bins=bins, age_labels=labels)
 
 
 class TestAcceptSuggestedAttributes:
     """Tests for accept_suggested_attributes method."""
 
     def test_accept_by_index(self, sample_data: pl.DataFrame) -> None:
-        """Test accepting suggestion by index."""
+        """Integer selections always use Python's zero-based convention."""
         audit = FairCareAudit(
             data=sample_data,
             pred_col="y_prob",
@@ -256,7 +370,16 @@ class TestAcceptSuggestedAttributes:
         suggestions = audit.suggest_attributes(display=False)
         if suggestions:
             audit.accept_suggested_attributes([1])
-            assert len(audit.sensitive_attributes) >= 1
+            assert audit.sensitive_attributes[0].name == suggestions[1]["suggested_name"]
+
+    def test_likely_one_based_selection_warns_then_raises(self, sample_data: pl.DataFrame) -> None:
+        audit = FairCareAudit(sample_data, "y_prob", "y_true")
+        last_one_based = len(audit.suggest_attributes(display=False))
+        with (
+            pytest.warns(UserWarning, match="0-based"),
+            pytest.raises(ConfigurationError, match="Invalid index"),
+        ):
+            audit.accept_suggested_attributes([1, last_one_based])
 
     def test_invalid_index(self, sample_data: pl.DataFrame) -> None:
         """Test error on invalid index."""
@@ -326,6 +449,14 @@ class TestAddSensitiveAttribute:
         with pytest.raises(DataValidationError):
             audit.add_sensitive_attribute(name="invalid", column="nonexistent")
 
+    def test_duplicate_registration_updates_in_place(self, sample_data: pl.DataFrame) -> None:
+        """Repeated name/column registration cannot duplicate audit work."""
+        audit = FairCareAudit(sample_data, "y_prob", "y_true")
+        audit.add_sensitive_attribute("race", "race", "White")
+        audit.add_sensitive_attribute("race", "race", "Black")
+        assert len(audit.sensitive_attributes) == 1
+        assert audit.sensitive_attributes[0].reference == "Black"
+
 
 class TestAddIntersection:
     """Tests for add_intersection method."""
@@ -380,6 +511,36 @@ class TestRun:
         results = configured_audit.run(bootstrap_ci=False)
         assert results is not None
         assert results.config is not None
+
+    def test_fast_mode_records_resolved_settings_and_progress(
+        self, configured_audit: FairCareAudit, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        results = configured_audit.run(bootstrap_ci=False, fast=True, n_jobs=1)
+        output = capsys.readouterr().out
+        assert "[1/6]" in output
+        assert "Audit complete in" in output
+        assert results.reproducibility["fast"] is True
+        assert results.reproducibility["n_bootstrap"] == 200
+        assert results.reproducibility["n_jobs"] == 1
+
+    def test_progress_can_be_disabled(
+        self, configured_audit: FairCareAudit, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        configured_audit.run(bootstrap_ci=False, fast=True, progress=False)
+        assert "Audit complete in" not in capsys.readouterr().out
+
+    def test_calibration_deviation_flags_include_metric_context(
+        self, configured_audit: FairCareAudit
+    ) -> None:
+        results = AuditResults(config=configured_audit.config)
+        results.subgroup_performance = {
+            "race": {"groups": {"A": {"oe_ratio": 1.25, "calibration_slope": 0.7}}}
+        }
+        flags = configured_audit._check_calibration_violations(
+            results, configured_audit.config.thresholds
+        )
+        assert {flag["metric"] for flag in flags} == {"oe_ratio", "calibration_slope"}
+        assert all(flag["attribute"] == "race" and flag["group"] == "A" for flag in flags)
 
     def test_run_with_bootstrap(self, configured_audit: FairCareAudit) -> None:
         """Test audit run with bootstrap CI."""

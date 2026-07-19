@@ -14,14 +14,21 @@ from typing import Any
 import numpy as np
 import polars as pl
 from sklearn.metrics import roc_auc_score
+from statsmodels.api import Logit
 
+from faircareai.core.bootstrap import bootstrap_metric, compute_percentile_ci
 from faircareai.core.constants import DEFAULT_BOOTSTRAP_SEED
+from faircareai.core.logging import get_logger
 from faircareai.core.metrics import compute_confusion_metrics
 from faircareai.metrics.group_utils import (
     determine_reference_group,
     filter_to_group,
     get_unique_groups,
 )
+
+logger = get_logger(__name__)
+
+_CALIBRATION_PROBABILITY_EPSILON = 1e-10
 
 
 def compute_subgroup_metrics(
@@ -34,6 +41,7 @@ def compute_subgroup_metrics(
     bootstrap_ci: bool = True,
     n_bootstrap: int = 500,
     random_seed: int | None = DEFAULT_BOOTSTRAP_SEED,
+    n_jobs: int = 1,
 ) -> dict[str, Any]:
     """Compute comprehensive metrics for each subgroup.
 
@@ -47,6 +55,7 @@ def compute_subgroup_metrics(
         bootstrap_ci: Whether to compute bootstrap CI.
         n_bootstrap: Number of bootstrap iterations.
         random_seed: Random seed for bootstrap resampling.
+        n_jobs: Number of subgroup workers; ``-1`` uses all available cores.
 
     Returns:
         Dict with per-subgroup performance and fairness metrics.
@@ -63,6 +72,35 @@ def compute_subgroup_metrics(
     reference = determine_reference_group(groups, df, group_col, reference)
 
     results["reference"] = reference
+
+    if n_jobs != 1 and len(groups) > 1:
+        from joblib import Parallel, delayed
+
+        def compute_group(group: Any) -> tuple[str, dict[str, Any]]:
+            group_key = str(group)
+            single = compute_subgroup_metrics(
+                filter_to_group(df, group_col, group),
+                y_prob_col,
+                y_true_col,
+                group_col,
+                threshold=threshold,
+                reference=group_key,
+                bootstrap_ci=bootstrap_ci,
+                n_bootstrap=n_bootstrap,
+                random_seed=random_seed,
+                n_jobs=1,
+            )
+            metrics = single["groups"][group_key]
+            metrics["is_reference"] = group_key == str(reference)
+            return group_key, metrics
+
+        results["groups"] = dict(
+            Parallel(n_jobs=n_jobs, prefer="threads")(
+                delayed(compute_group)(group) for group in groups
+            )
+        )
+        results["disparities"] = _compute_subgroup_disparities(results, reference)
+        return results
 
     # Compute metrics for each group
     for group in groups:
@@ -120,11 +158,54 @@ def compute_subgroup_metrics(
             if bootstrap_ci and n >= 20:
                 auroc_samples = _bootstrap_auroc(y_true, y_prob, n_bootstrap, random_seed)
                 if len(auroc_samples) > 10:
-                    auroc_ci = np.percentile(auroc_samples, [2.5, 97.5])
+                    auroc_ci: np.ndarray = np.percentile(auroc_samples, [2.5, 97.5])
                     group_result["auroc_ci_95"] = [float(auroc_ci[0]), float(auroc_ci[1])]
 
         # Mean prediction
         group_result["mean_predicted_prob"] = float(np.mean(y_prob))
+
+        # Calibration pair recommended by Van Calster et al.: calibration-in-the-large
+        # (O:E) and logistic recalibration slope.
+        oe_ratio, oe_warning = _compute_oe_ratio(y_true, y_prob)
+        calibration_slope, slope_warning = _compute_calibration_slope(y_true, y_prob)
+        group_result["oe_ratio"] = oe_ratio
+        group_result["calibration_slope"] = calibration_slope
+        group_result["calibration_warnings"] = [
+            warning for warning in (oe_warning, slope_warning) if warning is not None
+        ]
+
+        if bootstrap_ci and n >= 20:
+            seed = DEFAULT_BOOTSTRAP_SEED if random_seed is None else random_seed
+            oe_samples, _ = bootstrap_metric(
+                y_true,
+                y_prob,
+                _oe_ratio_for_bootstrap,
+                n_bootstrap=n_bootstrap,
+                seed=seed,
+                min_classes=1,
+            )
+            oe_ci = compute_percentile_ci(oe_samples)
+            if oe_ci[0] is not None and oe_ci[1] is not None:
+                group_result["oe_ratio_ci_95"] = [oe_ci[0], oe_ci[1]]
+            else:
+                group_result["calibration_warnings"].append("oe_ratio_bootstrap_unavailable")
+
+            if calibration_slope is not None:
+                slope_samples, _ = bootstrap_metric(
+                    y_true,
+                    y_prob,
+                    _calibration_slope_for_bootstrap,
+                    n_bootstrap=n_bootstrap,
+                    seed=seed,
+                    min_classes=2,
+                )
+                slope_ci = compute_percentile_ci(slope_samples)
+                if slope_ci[0] is not None and slope_ci[1] is not None:
+                    group_result["calibration_slope_ci_95"] = [slope_ci[0], slope_ci[1]]
+                else:
+                    group_result["calibration_warnings"].append(
+                        "calibration_slope_bootstrap_unavailable"
+                    )
 
         results["groups"][str(group)] = group_result
 
@@ -132,6 +213,68 @@ def compute_subgroup_metrics(
     results["disparities"] = _compute_subgroup_disparities(results, reference)
 
     return results
+
+
+def _compute_oe_ratio(
+    y_true: np.ndarray,
+    y_prob: np.ndarray,
+) -> tuple[float | None, str | None]:
+    """Compute observed-to-expected events, with an explicit unavailable marker."""
+    expected = float(np.sum(y_prob))
+    if not np.isfinite(expected) or expected <= 0:
+        return None, "nonpositive_expected_events"
+
+    ratio = float(np.sum(y_true) / expected)
+    if not np.isfinite(ratio):
+        return None, "oe_ratio_fit_failed"
+    return ratio, None
+
+
+def _compute_calibration_slope(
+    y_true: np.ndarray,
+    y_prob: np.ndarray,
+    *,
+    log_failure: bool = True,
+) -> tuple[float | None, str | None]:
+    """Fit outcome ~ intercept + slope * logit(prediction)."""
+    if len(np.unique(y_true)) < 2:
+        return None, "single_class_outcome"
+    if len(np.unique(y_prob)) < 2:
+        return None, "constant_predicted_probability"
+
+    clipped = np.clip(
+        y_prob.astype(float),
+        _CALIBRATION_PROBABILITY_EPSILON,
+        1.0 - _CALIBRATION_PROBABILITY_EPSILON,
+    )
+    logit_probability = np.log(clipped / (1.0 - clipped))
+    design = np.column_stack([np.ones_like(logit_probability), logit_probability])
+
+    try:
+        fit = Logit(y_true, design).fit(disp=0)
+        slope = float(fit.params[1])
+        if not bool(fit.mle_retvals.get("converged", True)) or not np.isfinite(slope):
+            raise ValueError("calibration model did not converge to a finite slope")
+    except Exception as exc:  # statsmodels exposes several fit-specific exception classes
+        if log_failure:
+            logger.warning("Subgroup calibration slope unavailable: %s", exc)
+        return None, "calibration_slope_fit_failed"
+
+    return slope, None
+
+
+def _oe_ratio_for_bootstrap(y_true: np.ndarray, y_prob: np.ndarray) -> float:
+    value, warning = _compute_oe_ratio(y_true, y_prob)
+    if value is None:
+        raise ValueError(warning or "O:E ratio unavailable")
+    return value
+
+
+def _calibration_slope_for_bootstrap(y_true: np.ndarray, y_prob: np.ndarray) -> float:
+    value, warning = _compute_calibration_slope(y_true, y_prob, log_failure=False)
+    if value is None:
+        raise ValueError(warning or "calibration slope unavailable")
+    return value
 
 
 def _bootstrap_auroc(
@@ -316,7 +459,7 @@ def compute_intersectional(
                 if bootstrap_ci and n >= 20:
                     auroc_samples = _bootstrap_auroc(y_true, y_prob, n_bootstrap)
                     if len(auroc_samples) > 10:
-                        auroc_ci = np.percentile(auroc_samples, [2.5, 97.5])
+                        auroc_ci: np.ndarray = np.percentile(auroc_samples, [2.5, 97.5])
                         group_result["auroc_ci_95"] = [
                             float(auroc_ci[0]),
                             float(auroc_ci[1]),

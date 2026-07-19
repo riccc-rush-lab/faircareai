@@ -384,7 +384,7 @@ def export_figure_bundle(
                 export_altair_chart(
                     fig,
                     export_path,
-                    format=cast(AltairExportFormat, fmt),
+                    format=fmt,
                     scale_factor=scale,
                 )
             results[fmt] = export_path

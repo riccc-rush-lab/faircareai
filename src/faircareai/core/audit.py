@@ -8,6 +8,7 @@ methodology. Healthcare organizations interpret results based on their clinical
 context, organizational values, and governance frameworks.
 """
 
+import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -124,11 +125,16 @@ class FairCareAudit:
 
     def __init__(
         self,
-        data: pl.DataFrame | str | Path,
+        data: pl.DataFrame | str | Path | Any,
         pred_col: str,
         target_col: str,
         config: FairnessConfig | None = None,
         threshold: float = 0.5,
+        sensitive_attrs: dict[str, str] | None = None,
+        auto_accept: bool = False,
+        include_unknown: bool = True,
+        max_collect_rows: int = 500_000,
+        spark_extra_columns: list[str] | None = None,
     ):
         """
         Initialize a fairness audit.
@@ -189,23 +195,68 @@ class FairCareAudit:
             sensitive attributes, then accept_suggested_attributes() or
             add_sensitive_attribute() to define which demographics to analyze.
         """
-        self.df = self._load_data(data)
         self.pred_col = pred_col
         self.target_col = target_col
         self.threshold = threshold
-        self.config = config or FairnessConfig(model_name="Unnamed Model")
+        self.include_unknown = include_unknown
+        self.max_collect_rows = max_collect_rows
+        self.spark_extra_columns = spark_extra_columns or []
+        self._constructor_sensitive_attrs = sensitive_attrs or {}
+        self._original_missing_rates: dict[str, tuple[int, float]] = {}
+        self.df = self._load_data(data)
+        del self._constructor_sensitive_attrs
+
+        # Initialize registration state before configuration. Constructor config
+        # is normal setup and must not trigger the later-assignment warning.
+        self.sensitive_attributes: list[SensitiveAttribute] = []
+        self.intersections: list[list[str]] = []
+        self._config = config or FairnessConfig(model_name="Unnamed Model")
 
         # Store for visualization access
         self.y_true_col = target_col
         self.y_prob_col = pred_col
 
-        self.sensitive_attributes: list[SensitiveAttribute] = []
-        self.intersections: list[list[str]] = []
-
         self._validate_data()
 
         # Auto-detect suggested attributes
         self._suggestions = suggest_sensitive_attributes(self.df)
+
+        for name, column in (sensitive_attrs or {}).items():
+            self.add_sensitive_attribute(name=name, column=column)
+
+        if auto_accept:
+            pending = [
+                suggestion["suggested_name"]
+                for suggestion in self._suggestions
+                if not any(
+                    attr.name == suggestion["suggested_name"]
+                    or attr.column == suggestion["detected_column"]
+                    for attr in self.sensitive_attributes
+                )
+            ]
+            print(
+                "FairCareAI auto-accept enabled: registering detected sensitive "
+                f"attributes {pending or '(none remaining)'}."
+            )
+            self.accept_suggested_attributes(pending)
+
+    @property
+    def config(self) -> FairnessConfig:
+        """Return the active fairness configuration."""
+        return self._config
+
+    @config.setter
+    def config(self, value: FairnessConfig) -> None:
+        """Set configuration and flag likely incomplete interactive setup."""
+        self._config = value
+        if hasattr(self, "sensitive_attributes") and not self.sensitive_attributes:
+            warnings.warn(
+                "Fairness configuration was assigned before any sensitive attributes "
+                "were registered. Use suggest_attributes(), pass sensitive_attrs=..., "
+                "or call add_sensitive_attribute() before run().",
+                UserWarning,
+                stacklevel=2,
+            )
 
     def __getstate__(self) -> dict:
         """Return picklable state (exclude logger for Windows multiprocessing)."""
@@ -237,6 +288,32 @@ class FairCareAudit:
         # Check for Polars DataFrame first (most common case)
         if isinstance(data, pl.DataFrame):
             return data
+
+        from faircareai.data.spark_adapter import is_pyspark_dataframe, spark_to_polars
+
+        if is_pyspark_dataframe(data):
+            from faircareai.data.sensitive_attrs import SUGGESTED_PATTERNS
+
+            spark_data = cast(Any, data)
+            available = list(spark_data.columns)
+            known_patterns = {
+                pattern.lower()
+                for spec in SUGGESTED_PATTERNS.values()
+                for pattern in spec["patterns"]
+            }
+            detected = [column for column in available if column.lower() in known_patterns]
+            selected = [
+                self.pred_col,
+                self.target_col,
+                *self._constructor_sensitive_attrs.values(),
+                *detected,
+                *self.spark_extra_columns,
+            ]
+            return spark_to_polars(
+                spark_data,
+                selected,
+                max_collect_rows=self.max_collect_rows,
+            )
 
         # Auto-convert pandas DataFrame to Polars
         try:
@@ -360,7 +437,13 @@ class FairCareAudit:
                 f"Consider collecting more data for robust analysis."
             )
 
-    def suggest_attributes(self, display: bool = True) -> list[dict]:
+    def suggest_attributes(
+        self,
+        display: bool = True,
+        *,
+        age_bins: list[int] | None = None,
+        age_labels: list[str] | None = None,
+    ) -> list[dict]:
         """
         Show suggested sensitive attributes based on detected columns.
 
@@ -373,10 +456,16 @@ class FairCareAudit:
         Returns:
             List of suggestion dicts. User must explicitly accept.
         """
-        if display:
-            logger.info(
-                "Suggested sensitive attributes:\n%s", display_suggestions(self._suggestions)
+        try:
+            self._suggestions = suggest_sensitive_attributes(
+                self.df,
+                age_bins=age_bins,
+                age_labels=age_labels,
             )
+        except ValueError as exc:
+            raise ConfigurationError("age_bands", str(exc)) from exc
+        if display:
+            print(display_suggestions(self._suggestions))
         return self._suggestions
 
     def accept_suggested_attributes(
@@ -389,9 +478,7 @@ class FairCareAudit:
 
         Args:
             selections: 0-based indices (Python convention) or names of
-                suggestions to accept. Legacy 1-based indices are also
-                supported: if all integer indices are >= 1 and none are 0,
-                they are interpreted as 1-based for backward compatibility.
+                suggestions to accept. Selecting by name is recommended.
             modify: Overrides for accepted suggestions, e.g.
                     {"race": {"reference": "Black"}}
 
@@ -400,33 +487,29 @@ class FairCareAudit:
         """
         modify = modify or {}
 
-        # Detect indexing convention: if any integer index is 0 the caller
-        # is using 0-based (Python convention).  If all integers are >= 1,
-        # assume legacy 1-based indexing for backward compatibility.
         int_indices = [s for s in selections if isinstance(s, int)]
-        zero_based = any(i == 0 for i in int_indices)
+        if (
+            int_indices
+            and all(index >= 1 for index in int_indices)
+            and any(index == len(self._suggestions) for index in int_indices)
+        ):
+            warnings.warn(
+                "Sensitive-attribute suggestion indexes are now always 0-based. "
+                "Select by suggestion name (recommended) or use indexes from 0 to "
+                f"{len(self._suggestions) - 1}.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         for sel in selections:
             # Find the suggestion
             if isinstance(sel, int):
-                if zero_based:
-                    # 0-based indexing (Python convention)
-                    if 0 <= sel < len(self._suggestions):
-                        suggestion = self._suggestions[sel]
-                    else:
-                        raise ConfigurationError(
-                            "selection",
-                            f"Invalid index: {sel}. Valid: 0-{len(self._suggestions) - 1}",
-                        )
-                elif 1 <= sel <= len(self._suggestions):
-                    # Legacy 1-based indexing
-                    suggestion = self._suggestions[sel - 1]
+                if 0 <= sel < len(self._suggestions):
+                    suggestion = self._suggestions[sel]
                 else:
                     raise ConfigurationError(
                         "selection",
-                        f"Invalid index: {sel}. "
-                        f"Valid: 0-{len(self._suggestions) - 1} (0-based) "
-                        f"or 1-{len(self._suggestions)} (1-based)",
+                        f"Invalid index: {sel}. Valid: 0-{len(self._suggestions) - 1}",
                     )
             else:
                 matches = [s for s in self._suggestions if s["suggested_name"] == sel]
@@ -436,6 +519,17 @@ class FairCareAudit:
 
             # Apply any modifications
             overrides = modify.get(suggestion["suggested_name"], {})
+
+            if suggestion.get("derived"):
+                source = suggestion["source_column"]
+                self.df = self.df.with_columns(
+                    pl.col(source)
+                    .cut(
+                        breaks=suggestion["age_bins"],
+                        labels=suggestion["age_labels"],
+                    )
+                    .alias(suggestion["detected_column"])
+                )
 
             self.add_sensitive_attribute(
                 name=suggestion["suggested_name"],
@@ -562,6 +656,17 @@ class FairCareAudit:
             if "not found" not in issue:
                 logger.warning("Attribute validation: %s", issue)
 
+        missing_count = self.df[col].null_count()
+        if missing_count > 0:
+            self._original_missing_rates[name] = (
+                missing_count,
+                missing_count / len(self.df) if len(self.df) else 0.0,
+            )
+        if self.include_unknown and missing_count > 0:
+            self.df = self.df.with_columns(
+                pl.col(col).cast(pl.String).fill_null("Unknown").alias(col)
+            )
+
         # Determine reference group if not specified
         if reference is None:
             reference = get_reference_group(self.df, col, None)
@@ -573,6 +678,13 @@ class FairCareAudit:
             categories=categories,
             clinical_justification=clinical_justification,
         )
+
+        for index, existing in enumerate(self.sensitive_attributes):
+            if existing.name == name:
+                self.sensitive_attributes[index] = attr
+                return self
+            if existing.column == col:
+                return self
 
         self.sensitive_attributes.append(attr)
         return self
@@ -649,7 +761,7 @@ class FairCareAudit:
         """Compute descriptive statistics for the cohort."""
         from faircareai.metrics.descriptive import compute_cohort_summary
 
-        return compute_cohort_summary(
+        summary = compute_cohort_summary(
             df=self.df,
             y_true_col=self.target_col,
             y_prob_col=self.pred_col,
@@ -658,6 +770,12 @@ class FairCareAudit:
                 for a in self.sensitive_attributes
             },
         )
+        for name, (count, rate) in self._original_missing_rates.items():
+            distribution = summary.get("attribute_distributions", {}).get(name)
+            if isinstance(distribution, dict):
+                distribution["n_missing"] = count
+                distribution["missing_rate"] = rate
+        return summary
 
     def _compute_overall_performance(
         self,
@@ -685,6 +803,7 @@ class FairCareAudit:
         bootstrap_ci: bool,
         n_bootstrap: int,
         random_seed: int | None,
+        n_jobs: int = 1,
     ) -> dict:
         """Compute subgroup performance metrics."""
         from faircareai.metrics.subgroup import compute_subgroup_metrics
@@ -701,6 +820,7 @@ class FairCareAudit:
                 bootstrap_ci=bootstrap_ci,
                 n_bootstrap=n_bootstrap,
                 random_seed=random_seed,
+                n_jobs=n_jobs,
             )
         return results
 
@@ -723,8 +843,13 @@ class FairCareAudit:
     def run(
         self,
         bootstrap_ci: bool = True,
-        n_bootstrap: int = 1000,
+        n_bootstrap: int | None = None,
         random_seed: int | None = DEFAULT_BOOTSTRAP_SEED,
+        *,
+        fast: bool = False,
+        n_jobs: int = -1,
+        progress: bool = True,
+        show: bool = False,
     ) -> AuditResults:
         """
         Execute the fairness audit.
@@ -769,31 +894,49 @@ class FairCareAudit:
             >>> # Or equivalently:
             >>> results.to_pdf("governance.pdf", persona="governance")
         """
+        from faircareai.core.privacy import mark_suppressed_groups
+        from faircareai.core.progress import ProgressReporter
+
         self._validate_audit_config()
+        resolved_bootstrap = n_bootstrap if n_bootstrap is not None else (200 if fast else 1000)
+        reporter = ProgressReporter(enabled=progress)
 
         results = AuditResults(config=self.config, threshold=self.threshold)
         results.run_timestamp = datetime.now().astimezone().isoformat(timespec="seconds")
         results.random_seed = random_seed
         results.reproducibility = build_reproducibility_bundle(
             bootstrap_ci=bootstrap_ci,
-            n_bootstrap=n_bootstrap,
+            n_bootstrap=resolved_bootstrap,
             random_seed=random_seed,
+            fast=fast,
+            n_jobs=n_jobs,
         )
 
         # Section 1-4: Computation
+        reporter.stage(1, 6, "Computing cohort summary")
         results.descriptive_stats = self._compute_descriptive_statistics()
+        reporter.stage(2, 6, "Computing overall performance")
         results.overall_performance = cast(
             dict[str, Any],
-            self._compute_overall_performance(bootstrap_ci, n_bootstrap, random_seed),
+            self._compute_overall_performance(bootstrap_ci, resolved_bootstrap, random_seed),
         )
+        for attr in self.sensitive_attributes:
+            group_count = self.df[attr.column].n_unique()
+            reporter.stage(
+                3,
+                6,
+                f"Computing subgroup performance: {attr.name} ({group_count} groups)",
+            )
         results.subgroup_performance = self._compute_subgroup_performance(
-            bootstrap_ci, n_bootstrap, random_seed
+            bootstrap_ci, resolved_bootstrap, random_seed, n_jobs
         )
+        reporter.stage(4, 6, "Computing fairness metrics")
         results.fairness_metrics = self._compute_fairness_metrics()
 
         # Section 5: Intersectional Analysis
         from faircareai.metrics.subgroup import compute_intersectional
 
+        reporter.stage(5, 6, "Computing intersectional analyses")
         results.intersectional = {}
         for intersection in self.intersections:
             key = " x ".join(intersection)
@@ -808,14 +951,40 @@ class FairCareAudit:
                 min_n=int(min_n_val) if min_n_val is not None else 100,
             )
 
+        reporter.stage(6, 6, "Generating findings and report metadata")
         # Section 6: Generate Flags
         results.flags = self._generate_flags(results)
 
         # Section 7: Governance Recommendation
         results.governance_recommendation = self._generate_recommendation(results)
 
+        suppress_n = int(self.config.get_threshold("suppress_cell_n", 11) or 11)
+        for payload in (
+            results.descriptive_stats,
+            results.subgroup_performance,
+            results.fairness_metrics,
+            results.intersectional,
+        ):
+            mark_suppressed_groups(payload, suppress_n)
+        for attribute, payload in results.subgroup_performance.items():
+            suppressed_groups = [
+                group
+                for group, metrics in payload.get("groups", {}).items()
+                if isinstance(metrics, dict) and metrics.get("suppressed_in_reports", False)
+            ]
+            fairness_payload = results.fairness_metrics.get(attribute)
+            if suppressed_groups and isinstance(fairness_payload, dict):
+                fairness_payload["suppressed_groups"] = suppressed_groups
+            for flag in results.flags:
+                if flag.get("attribute") == attribute and flag.get("group") in suppressed_groups:
+                    flag["suppressed_in_reports"] = True
+
         # Store reference for visualization
         results._audit = self
+
+        reporter.complete()
+        if show:
+            results.show()
 
         return results
 
@@ -874,8 +1043,41 @@ class FairCareAudit:
         # Check each category separately for maintainability
         flags.extend(self._check_subgroup_sizes(results, thresholds))
         flags.extend(self._check_fairness_violations(results, thresholds))
+        flags.extend(self._check_calibration_violations(results, thresholds))
         flags.extend(self._check_data_quality(results, thresholds))
 
+        return flags
+
+    def _check_calibration_violations(self, results: AuditResults, thresholds: dict) -> list[dict]:
+        """Flag subgroup O:E and calibration slopes that deviate from one."""
+        flags: list[dict] = []
+        limits = {
+            "oe_ratio": float(thresholds.get("max_oe_deviation", 0.10)),
+            "calibration_slope": float(thresholds.get("max_calibration_slope_deviation", 0.10)),
+        }
+        for attribute, payload in results.subgroup_performance.items():
+            for group, metrics in payload.get("groups", {}).items():
+                if not isinstance(metrics, dict):
+                    continue
+                for metric, limit in limits.items():
+                    value = metrics.get(metric)
+                    if isinstance(value, int | float) and abs(float(value) - 1.0) > limit:
+                        flags.append(
+                            self._build_flag(
+                                severity="warning",
+                                category="calibration",
+                                message=f"{metric} deviates from ideal for {attribute}:{group}",
+                                details=(
+                                    f"Observed {metric}={float(value):.3f}; configured maximum "
+                                    f"absolute deviation from 1.0 is {limit:.3f}."
+                                ),
+                                attribute=attribute,
+                                group=group,
+                                metric=metric,
+                                value=float(value),
+                                threshold=limit,
+                            )
+                        )
         return flags
 
     def _check_subgroup_sizes(self, results: AuditResults, thresholds: dict) -> list[dict]:
@@ -995,14 +1197,17 @@ class FairCareAudit:
             if not isinstance(attr_dist, dict):
                 continue
 
-            missing_rate = attr_dist.get("pct_missing", 0)
+            missing_rate = attr_dist.get("missing_rate", 0)
             if missing_rate > max_missing:
                 flags.append(
                     self._build_flag(
                         severity="warning",
                         category="data_quality",
                         message=f"Missing rate {missing_rate:.1%} > {max_missing:.0%}",
-                        details=(f"High missing data for {attr_name} may bias fairness estimates"),
+                        details=(
+                            f"High missing data for {attr_name} may bias fairness estimates; "
+                            "missing records are audited as the Unknown group when enabled."
+                        ),
                         criteria_ref="AC1.CR68",
                         attribute=attr_name,
                         value=missing_rate,

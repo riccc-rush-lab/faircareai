@@ -76,10 +76,18 @@ def collect_data_scientist_figures(results: Any, include_optional: bool = False)
         results,
         selected_threshold=results.overall_performance.get("primary_threshold", 0.5),
     )
-    figures["Fairness Dashboard"] = create_fairness_dashboard(results)
+    has_suppressed_groups = any(
+        group.get("suppressed_in_reports", False)
+        for payload in results.subgroup_performance.values()
+        if isinstance(payload, dict)
+        for group in payload.get("groups", {}).values()
+        if isinstance(group, dict)
+    )
+    if not has_suppressed_groups:
+        figures["Fairness Dashboard"] = create_fairness_dashboard(results)
 
     # Optional: Van Calster dashboard when raw audit data is available
-    if getattr(results, "_audit", None) is not None:
+    if getattr(results, "_audit", None) is not None and not has_suppressed_groups:
         try:
             from faircareai.metrics.subgroup_performance import compute_subgroup_metrics_suite
             from faircareai.visualization.subgroup_plots import create_subgroup_dashboard

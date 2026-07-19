@@ -63,6 +63,8 @@ def build_reproducibility_bundle(
     bootstrap_ci: bool,
     n_bootstrap: int,
     random_seed: int | None,
+    fast: bool = False,
+    n_jobs: int = 1,
 ) -> dict:
     """Build a reproducibility bundle with environment + audit settings."""
     return {
@@ -70,4 +72,6 @@ def build_reproducibility_bundle(
         "bootstrap_ci": bootstrap_ci,
         "n_bootstrap": n_bootstrap,
         "random_seed": random_seed,
+        "fast": fast,
+        "n_jobs": n_jobs,
     }

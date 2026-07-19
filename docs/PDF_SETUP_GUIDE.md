@@ -179,18 +179,18 @@ Playwright runs in headless mode by default (no visible browser window). This is
 
 ### Minimal (no PDF export)
 ```bash
-pip install faircareai
+pip install faircare
 ```
 
 ### With PDF Export
 ```bash
-pip install "faircareai[export]"  # Includes Playwright
+pip install "faircare[export]"  # Includes Playwright
 python -m playwright install chromium
 ```
 
 ### Full Installation (PDF + PowerPoint)
 ```bash
-pip install "faircareai[export]"
+pip install "faircare[export]"
 python -m playwright install chromium
 ```
 

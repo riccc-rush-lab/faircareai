@@ -9,6 +9,8 @@
 
 **Fairness auditing for clinical AI — two audiences, one run.**
 
+Notebook users: see the [Jupyter, marimo, Fabric, and Databricks guide](docs/NOTEBOOKS.md).
+
 ---
 
 ## Why FairCareAI Exists
@@ -99,6 +101,13 @@ python -m playwright install chromium  # Required for PDF generation
 
 PNG export uses Kaleido for static Plotly rendering (included in `faircare[export]`).
 
+### Notebook runtimes
+
+`faircare` is the package name; import it in Python as `faircareai` and use
+`faircareai` as the CLI. Jupyter, marimo, and PySpark are host-provided optional
+runtimes, not base package dependencies. See the [notebook environment guide](docs/NOTEBOOKS.md)
+for exact setup and examples.
+
 ### With Compliance Validation (XML Schema)
 
 ```bash
@@ -155,6 +164,14 @@ Python >= 3.10. See `pyproject.toml` for the complete dependency list.
 | CSV | `FairCareAudit(data="data.csv", ...)` |
 | Polars DataFrame | `FairCareAudit(data=pl_df, ...)` |
 | Pandas DataFrame | `FairCareAudit(data=pd_df, ...)` |
+| PySpark DataFrame | `FairCareAudit(data=spark_df, ..., max_collect_rows=500_000)` |
+
+### Notebook environments
+
+Jupyter, marimo, Microsoft Fabric, and Databricks users should follow the
+[notebook environment guide](docs/NOTEBOOKS.md). It covers the package/import
+names, display calls, bounded PySpark input, managed-platform installation,
+aggregate artifact paths, and Delta persistence.
 
 ### Auto-Detected Sensitive Attributes
 
@@ -816,7 +833,7 @@ If you use FairCareAI in your research or clinical implementation, please cite:
   author = {FairCareAI Contributors},
   year = {2026},
   url = {https://github.com/riccc-rush-lab/faircareai},
-  version = {0.2.7},
+  version = {0.3.0},
   note = {Python package for auditing ML fairness in healthcare}
 }
 ```

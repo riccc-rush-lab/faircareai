@@ -57,6 +57,15 @@ from .utils import add_source_annotation
 register_plotly_template()
 
 
+def _reportable_groups(results: dict[str, Any]) -> dict[str, Any]:
+    """Exclude publication-suppressed groups from chart traces and alt text."""
+    return {
+        name: data
+        for name, data in results.get("groups", {}).items()
+        if not isinstance(data, dict) or not data.get("suppressed_in_reports", False)
+    }
+
+
 # =============================================================================
 # ALT TEXT GENERATION FOR WCAG 2.1 AA COMPLIANCE
 # =============================================================================
@@ -67,7 +76,7 @@ def _generate_auroc_forest_alt_text(
     title: str,
 ) -> str:
     """Generate accessible alt text for AUROC forest plot."""
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
     n_groups = len(groups)
 
     if n_groups == 0:
@@ -101,7 +110,7 @@ def _generate_calibration_alt_text(
     title: str,
 ) -> str:
     """Generate accessible alt text for calibration plots."""
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
     n_groups = len(groups)
 
     if n_groups == 0:
@@ -135,7 +144,7 @@ def _generate_decision_curve_alt_text(
     threshold: float,
 ) -> str:
     """Generate accessible alt text for decision curves."""
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
     n_groups = len(groups)
 
     if n_groups == 0:
@@ -167,7 +176,7 @@ def _generate_risk_distribution_alt_text(
     title: str,
 ) -> str:
     """Generate accessible alt text for risk distribution plots."""
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
     n_groups = len(groups)
 
     if n_groups == 0:
@@ -240,7 +249,7 @@ def create_auroc_forest_plot(
     metric_label = get_label("auroc", persona, "name")
     if title is None:
         title = f"{metric_label} by Demographic Subgroup"
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
 
     if not groups:
         fig = go.Figure()
@@ -457,7 +466,7 @@ def create_calibration_plot_by_subgroup(
     x_label, y_label = get_axis_labels("calibration", persona)
     if title is None:
         title = f"{metric_label} by Demographic Subgroup"
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
 
     if not groups:
         fig = go.Figure()
@@ -602,7 +611,142 @@ def create_calibration_plot_by_subgroup(
 
 
 # =============================================================================
-# 3. DECISION CURVES (NET BENEFIT) BY SUBGROUP
+# 3. SUBGROUP CALIBRATION PAIR
+# =============================================================================
+
+
+def create_subgroup_calibration_pair_plot(
+    results: dict[str, Any],
+    title: str = "Subgroup Calibration Summary",
+    source_note: str | None = None,
+) -> go.Figure:
+    """Plot subgroup O:E ratios and calibration slopes with 95% intervals.
+
+    Both panels are centered on the ideal value of 1.0. Group color and text labels
+    provide redundant encodings, so the figure does not rely on color alone.
+    """
+    groups = _reportable_groups(results)
+    eligible_groups = [(name, data) for name, data in groups.items() if "error" not in data]
+    if not eligible_groups:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No subgroup calibration metrics available",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(size=TYPOGRAPHY["body_size"], color=SEMANTIC_COLORS["text_secondary"]),
+        )
+        fig.update_layout(meta={"description": f"{title}. No subgroup calibration data available."})
+        return fig
+
+    fig = make_subplots(
+        rows=1,
+        cols=2,
+        shared_yaxes=True,
+        horizontal_spacing=0.12,
+        subplot_titles=("Calibration-in-the-Large", "Calibration Spread"),
+    )
+
+    metric_specs = (
+        ("oe_ratio", "oe_ratio_ci_95", "Observed : Expected Ratio"),
+        ("calibration_slope", "calibration_slope_ci_95", "Calibration Slope"),
+    )
+    for column, (metric_key, ci_key, _axis_title) in enumerate(metric_specs, start=1):
+        for index, (group_name, group_data) in enumerate(eligible_groups):
+            value = group_data.get(metric_key)
+            if value is None:
+                continue
+
+            ci = group_data.get(ci_key)
+            error_x: dict[str, Any] | None = None
+            if ci and len(ci) == 2:
+                error_x = {
+                    "type": "data",
+                    "symmetric": False,
+                    "array": [max(0.0, float(ci[1]) - float(value))],
+                    "arrayminus": [max(0.0, float(value) - float(ci[0]))],
+                    "thickness": 2,
+                    "width": 5,
+                    "color": GROUP_COLORS[index % len(GROUP_COLORS)],
+                }
+
+            n = int(group_data.get("n", 0))
+            fig.add_trace(
+                go.Scatter(
+                    x=[value],
+                    y=[f"{group_name} (n={n:,})"],
+                    mode="markers+text",
+                    marker=dict(
+                        size=13,
+                        color=GROUP_COLORS[index % len(GROUP_COLORS)],
+                        line=dict(color="white", width=1.5),
+                    ),
+                    text=[f"{value:.2f}"],
+                    textposition="top center",
+                    textfont=dict(size=TYPOGRAPHY["annotation_size"]),
+                    error_x=error_x,
+                    name=str(group_name),
+                    legendgroup=str(group_name),
+                    showlegend=column == 1,
+                    hovertemplate=(
+                        f"<b>{group_name}</b><br>{_axis_title}: %{{x:.3f}}"
+                        + (f"<br>95% CI: {ci[0]:.3f}–{ci[1]:.3f}" if ci else "")
+                        + f"<br>Sample size: {n:,}<extra></extra>"
+                    ),
+                ),
+                row=1,
+                col=column,
+            )
+
+        fig.add_vline(
+            x=1.0,
+            line_dash="dash",
+            line_width=2,
+            line_color=SEMANTIC_COLORS["text_secondary"],
+            row=1,
+            col=column,
+        )
+
+    group_names = ", ".join(str(name) for name, _ in eligible_groups)
+    alt_text = (
+        f"{title}. Paired forest plots show observed-to-expected ratios and logistic "
+        f"calibration slopes for {len(eligible_groups)} subgroups: {group_names}. "
+        "Values closer to 1 indicate better calibration; horizontal bars are 95% confidence intervals."
+    )
+    fig.update_layout(
+        title=dict(
+            text=f"<b>{title}</b>",
+            font=dict(family=TYPOGRAPHY["heading_font"], size=TYPOGRAPHY["heading_size"]),
+        ),
+        template="faircareai",
+        height=calculate_chart_height(len(eligible_groups), "forest"),
+        margin=dict(l=180, r=50, t=110, b=90),
+        legend=LEGEND_POSITIONS["top_horizontal"],
+        font=dict(family=TYPOGRAPHY["data_font"], size=14, color=SEMANTIC_COLORS["text"]),
+        meta={"description": alt_text},
+    )
+    for column, (_metric_key, _ci_key, axis_title) in enumerate(metric_specs, start=1):
+        fig.update_xaxes(
+            title_text=axis_title,
+            title_font=dict(size=14),
+            tickfont=dict(size=14),
+            showgrid=True,
+            gridcolor=SEMANTIC_COLORS["grid"],
+            row=1,
+            col=column,
+        )
+    fig.update_yaxes(
+        title_text="Demographic Subgroup", title_font=dict(size=14), tickfont=dict(size=14)
+    )
+
+    add_source_annotation(
+        fig, source_note, citation="Van Calster et al. (2025) Lancet Digital Health"
+    )
+    return fig
+
+
+# =============================================================================
+# 4. DECISION CURVES (NET BENEFIT) BY SUBGROUP
 # =============================================================================
 
 
@@ -645,7 +789,7 @@ def create_decision_curve_by_subgroup(
     x_label, y_label = get_axis_labels("decision_curve", persona)
     if title is None:
         title = f"{metric_label} by Demographic Subgroup"
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
     threshold = results.get("primary_threshold", results.get("threshold", 0.5))
 
     # Support compute_subgroup_metrics_suite output (by_subgroup -> clinical_utility -> decision_curve)
@@ -800,7 +944,7 @@ def create_decision_curve_by_subgroup(
 
 
 # =============================================================================
-# 4. RISK DISTRIBUTION PLOTS BY SUBGROUP
+# 5. RISK DISTRIBUTION PLOTS BY SUBGROUP
 # =============================================================================
 
 
@@ -839,7 +983,7 @@ def create_risk_distribution_plot(
     metric_label = get_label("risk_distribution", persona, "name")
     if title is None:
         title = f"{metric_label} by Demographic Subgroup"
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
 
     if not groups:
         fig = go.Figure()

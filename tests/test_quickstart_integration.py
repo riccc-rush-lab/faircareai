@@ -54,7 +54,7 @@ class TestQuickstartIntegration:
         assert isinstance(suggestions, list)
         assert len(suggestions) >= 3  # race, sex, insurance
 
-        audit.accept_suggested_attributes([1, 2, 3])
+        audit.accept_suggested_attributes(["race", "sex", "insurance"])
 
         # Assertions: Attributes configured
         assert len(audit.sensitive_attributes) == 3
@@ -136,7 +136,7 @@ class TestQuickstartIntegration:
 
         # Step 2-3: Configure attributes and config
         audit.suggest_attributes(display=False)
-        audit.accept_suggested_attributes([1, 2])  # Just race and sex
+        audit.accept_suggested_attributes(["race", "sex"])
 
         audit.config = FairnessConfig(
             model_name="Parquet Input Test",
@@ -168,7 +168,7 @@ class TestQuickstartIntegration:
             data=sample_multigroup_data, pred_col="probability", target_col="outcome"
         )
         audit.suggest_attributes(display=False)
-        audit.accept_suggested_attributes([1])  # Just race for speed
+        audit.accept_suggested_attributes(["race"])  # Just race for speed
 
         audit.config = FairnessConfig(
             model_name="Export Test",
@@ -221,7 +221,7 @@ class TestQuickstartIntegration:
             data=sample_multigroup_data, pred_col="probability", target_col="outcome"
         )
         audit.suggest_attributes(display=False)
-        audit.accept_suggested_attributes([1])  # Just race
+        audit.accept_suggested_attributes(["race"])  # Just race
 
         audit.config = FairnessConfig(
             model_name="Bootstrap CI Test",
@@ -278,7 +278,7 @@ class TestQuickstartEdgeCases:
         )
 
         audit.suggest_attributes(display=False)
-        audit.accept_suggested_attributes([1, 2])  # race and sex
+        audit.accept_suggested_attributes(["race", "sex"])
 
         # Add intersectional analysis
         audit.add_intersection(["race", "sex"])

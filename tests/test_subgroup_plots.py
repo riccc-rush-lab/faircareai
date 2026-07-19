@@ -23,6 +23,7 @@ from faircareai.visualization.subgroup_plots import (
     create_calibration_plot_by_subgroup,
     create_decision_curve_by_subgroup,
     create_risk_distribution_plot,
+    create_subgroup_calibration_pair_plot,
     create_subgroup_dashboard,
 )
 from faircareai.visualization.utils import add_source_annotation
@@ -428,6 +429,60 @@ class TestCreateCalibrationPlotBySubgroup:
         }
         fig = create_calibration_plot_by_subgroup(results)
         assert "description" in fig.layout.meta
+
+
+class TestCreateSubgroupCalibrationPairPlot:
+    """Tests for the subgroup O:E ratio and calibration slope figure."""
+
+    def test_renders_both_metrics_with_confidence_intervals(self) -> None:
+        results = {
+            "groups": {
+                "Group A": {
+                    "n": 120,
+                    "oe_ratio": 0.9,
+                    "oe_ratio_ci_95": [0.82, 0.99],
+                    "calibration_slope": 1.1,
+                    "calibration_slope_ci_95": [0.94, 1.27],
+                },
+                "Group B": {
+                    "n": 95,
+                    "oe_ratio": 1.15,
+                    "oe_ratio_ci_95": [1.02, 1.28],
+                    "calibration_slope": 0.8,
+                    "calibration_slope_ci_95": [0.65, 0.96],
+                },
+            }
+        }
+
+        fig = create_subgroup_calibration_pair_plot(results)
+
+        assert isinstance(fig, Figure)
+        assert len(fig.data) == 4
+        assert fig.layout.xaxis.title.text == "Observed : Expected Ratio"
+        assert fig.layout.xaxis2.title.text == "Calibration Slope"
+        assert len(fig.layout.shapes) == 2
+        assert "description" in fig.layout.meta
+
+    def test_uses_accessible_typography_and_okabe_ito_colors(self) -> None:
+        results = {
+            "groups": {
+                "Group A": {"n": 100, "oe_ratio": 1.0, "calibration_slope": 0.95},
+                "Group B": {"n": 100, "oe_ratio": 1.1, "calibration_slope": None},
+            }
+        }
+
+        fig = create_subgroup_calibration_pair_plot(results)
+
+        assert fig.layout.font.size >= 14
+        assert fig.layout.xaxis.tickfont.size >= 14
+        assert fig.layout.xaxis2.tickfont.size >= 14
+        assert fig.data[0].marker.color == "#0072B2"
+
+    def test_empty_groups_returns_annotated_figure(self) -> None:
+        fig = create_subgroup_calibration_pair_plot({"groups": {}})
+
+        assert isinstance(fig, Figure)
+        assert len(fig.layout.annotations) == 1
 
 
 class TestCreateDecisionCurveBySubgroup:

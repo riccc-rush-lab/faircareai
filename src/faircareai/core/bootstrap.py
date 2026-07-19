@@ -283,7 +283,7 @@ def compute_percentile_ci(
     lower_pct = (alpha / 2) * 100
     upper_pct = (1 - alpha / 2) * 100
 
-    ci = np.percentile(samples, [lower_pct, upper_pct])
+    ci: np.ndarray = np.percentile(samples, [lower_pct, upper_pct])
     return float(ci[0]), float(ci[1])
 
 

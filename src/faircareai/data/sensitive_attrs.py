@@ -8,6 +8,7 @@ Methodology: CHAI RAIC Checkpoint 1 (protected attribute documentation).
 Note: Suggestions require explicit user acceptance.
 """
 
+from itertools import pairwise
 from typing import Any
 
 import polars as pl
@@ -17,16 +18,28 @@ SUGGESTED_PATTERNS: dict[str, dict[str, Any]] = {
     "race": {
         "patterns": [
             "race",
-            "ethnicity",
-            "race_eth",
             "patient_race",
             "race_cd",
-            "race_ethnicity",
         ],
         "suggested_reference": "White",
         "clinical_justification": (
             "Required for CMS health equity monitoring and HEDIS reporting. "
             "Helps identify potential disparities in care delivery."
+        ),
+    },
+    "ethnicity": {
+        "patterns": [
+            "ethnicity",
+            "patient_ethnicity",
+            "ethnicity_cd",
+            "ethnic_group",
+            "hispanic_indicator",
+            "race_ethnicity",
+        ],
+        "suggested_reference": "Not Hispanic or Latino",
+        "clinical_justification": (
+            "Ethnicity is distinct from race in clinical demographic data. "
+            "Auditing it separately can reveal inequities hidden by combined categories."
         ),
     },
     "sex": {
@@ -53,6 +66,12 @@ SUGGESTED_PATTERNS: dict[str, dict[str, Any]] = {
             "coverage",
             "payer_type",
             "payer_category",
+            "payor_type",
+            "payor_category",
+            "insurance_category",
+            "payor",
+            "primary_payor",
+            "financial_class",
         ],
         "suggested_reference": "Commercial",
         "clinical_justification": (
@@ -108,7 +127,12 @@ def _resolve_suggested_reference(
     return None
 
 
-def suggest_sensitive_attributes(df: pl.DataFrame) -> list[dict]:
+def suggest_sensitive_attributes(
+    df: pl.DataFrame,
+    *,
+    age_bins: list[int] | None = None,
+    age_labels: list[str] | None = None,
+) -> list[dict]:
     """
     Scan DataFrame columns and suggest likely sensitive attributes.
 
@@ -163,6 +187,45 @@ def suggest_sensitive_attributes(df: pl.DataFrame) -> list[dict]:
                 )
                 break  # Only match first pattern per attribute
 
+    # Numeric ages need a categorical analysis view. Suggest (but do not yet
+    # materialize) a derived age_band only when no categorical age column was
+    # detected. age_bins are inclusive upper bounds; labels cover each interval
+    # plus the open-ended final interval.
+    has_age_group = any(s["suggested_name"] == "age_group" for s in suggestions)
+    age_column = columns_lower.get("age")
+    if age_column is not None and not has_age_group and df[age_column].dtype.is_numeric():
+        resolved_bins = age_bins if age_bins is not None else [17, 39, 64]
+        resolved_labels = (
+            age_labels if age_labels is not None else ["0-17", "18-39", "40-64", "65+"]
+        )
+        if not resolved_bins or any(
+            current >= following for current, following in pairwise(resolved_bins)
+        ):
+            raise ValueError("age_bins must contain strictly increasing upper bounds")
+        if len(resolved_labels) != len(resolved_bins) + 1:
+            raise ValueError("age_labels must contain exactly len(age_bins) + 1 labels")
+
+        derived = df.select(
+            pl.col(age_column).cut(breaks=resolved_bins, labels=resolved_labels).alias("age_band")
+        )["age_band"]
+        unique_vals = derived.drop_nulls().unique().sort().cast(pl.String).to_list()
+        suggestions.append(
+            {
+                "suggested_name": "age_group",
+                "detected_column": "age_band",
+                "unique_values": unique_vals[:10],
+                "n_unique": len(unique_vals),
+                "missing_rate": float(derived.null_count() / len(df)),
+                "suggested_reference": None,
+                "clinical_justification": SUGGESTED_PATTERNS["age_group"]["clinical_justification"],
+                "accepted": False,
+                "derived": True,
+                "source_column": age_column,
+                "age_bins": list(resolved_bins),
+                "age_labels": list(resolved_labels),
+            }
+        )
+
     return suggestions
 
 
@@ -198,7 +261,7 @@ def display_suggestions(suggestions: list[dict]) -> str:
         "",
     ]
 
-    for i, s in enumerate(suggestions, 1):
+    for i, s in enumerate(suggestions):
         values_preview = str(s["unique_values"][:5])
         if len(s["unique_values"]) > 5:
             values_preview = values_preview[:-1] + ", ...]"
@@ -220,8 +283,8 @@ def display_suggestions(suggestions: list[dict]) -> str:
         [
             "=" * 60,
             "To accept suggestions:",
+            "  audit.accept_suggested_attributes(['race', 'sex'])  # by name (recommended)",
             "  audit.accept_suggested_attributes([0, 1])  # by index (0-based)",
-            "  audit.accept_suggested_attributes(['race', 'sex'])  # by name",
             "",
             "To modify reference group:",
             "  audit.accept_suggested_attributes([0], modify={'race': {'reference': 'Black'}})",
