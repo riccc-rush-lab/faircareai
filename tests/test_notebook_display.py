@@ -116,9 +116,7 @@ def test_figure_failure_is_actionable_and_retains_section() -> None:
     display = NotebookDisplay(platform="fabric", display_html=fail_html)
 
     with pytest.raises(DisplayError, match=r"figures.*save_artifacts.*html"):
-        display.render(
-            figures={"subgroup": go.Figure()}, sections="figures", plotlyjs="inline"
-        )
+        display.render(figures={"subgroup": go.Figure()}, sections="figures", plotlyjs="inline")
 
 
 def test_terminal_fallback_prints_summary_and_tables(capsys: pytest.CaptureFixture[str]) -> None:

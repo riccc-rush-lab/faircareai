@@ -26,7 +26,7 @@ def test_jupyter_quickstart_uses_the_published_package_name() -> None:
 
     assert "pip install faircare" in source
     assert "pip install faircareai" not in source
-    assert "results.show(platform=\"jupyter\")" in source
+    assert 'results.show(platform="jupyter")' in source
 
 
 def test_marimo_quickstart_is_runnable_and_uses_the_public_display_api() -> None:

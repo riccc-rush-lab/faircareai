@@ -56,9 +56,7 @@ def normalize_display_options(
 
     normalized_sections = _normalize_sections(sections)
     if platform not in _PUBLIC_PLATFORMS:
-        raise ValueError(
-            "platform must be one of: auto, fabric, databricks, jupyter, marimo"
-        )
+        raise ValueError("platform must be one of: auto, fabric, databricks, jupyter, marimo")
     if isinstance(max_rows, bool) or not isinstance(max_rows, int) or not 1 <= max_rows <= 10_000:
         raise ValueError("max_rows must be an integer between 1 and 10,000")
     if plotlyjs not in {"cdn", "inline"}:
@@ -66,9 +64,7 @@ def normalize_display_options(
     return DisplayOptions(normalized_sections, platform, max_rows, plotlyjs)
 
 
-def detect_notebook_platform(
-    *, get_ipython: Callable[[], Any] | None = None
-) -> ResolvedPlatform:
+def detect_notebook_platform(*, get_ipython: Callable[[], Any] | None = None) -> ResolvedPlatform:
     """Detect Databricks, Fabric, marimo, then Jupyter without dependencies."""
 
     if any(
@@ -279,9 +275,11 @@ def _default_display_functions(
         return (
             lambda value: marimo.output.append(marimo.ui.table(value, selection=None)),
             lambda value: marimo.output.append(marimo.Html(value)),
-            lambda value: marimo.output.append(marimo.md(f"""```text
+            lambda value: marimo.output.append(
+                marimo.md(f"""```text
 {value}
-```""")),
+```""")
+            ),
         )
 
     return print, print, print

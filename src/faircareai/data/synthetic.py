@@ -140,7 +140,7 @@ def generate_icu_mortality_data(
     # Generate model predictions
     # Realistic clinical model: AUROC ~0.85, imperfect calibration,
     # meaningful overlap between positive and negative distributions
-    y_prob = np.zeros(n_samples, dtype=np.float64)
+    y_prob: np.ndarray = np.zeros(n_samples, dtype=np.float64)
 
     # Positive cases: predictions centered around 0.60 with wide spread
     pos_mask = y_true == 1

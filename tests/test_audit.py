@@ -107,16 +107,12 @@ class TestFairCareAuditInit:
         assert "Unknown" in summary["attribute_distributions"]["race"]["groups"]
 
     def test_exclude_unknown_leaves_missing_values(self) -> None:
-        data = pl.DataFrame(
-            {"y_true": [0, 1], "y_prob": [0.1, 0.9], "race": ["A", None]}
-        )
+        data = pl.DataFrame({"y_true": [0, 1], "y_prob": [0.1, 0.9], "race": ["A", None]})
         audit = FairCareAudit(data, "y_prob", "y_true", include_unknown=False)
         audit.add_sensitive_attribute("race")
         assert audit.df["race"].null_count() == 1
 
-    def test_constructor_registers_sensitive_attributes(
-        self, sample_data: pl.DataFrame
-    ) -> None:
+    def test_constructor_registers_sensitive_attributes(self, sample_data: pl.DataFrame) -> None:
         """Explicit constructor mappings are registered with derived references."""
         audit = FairCareAudit(
             data=sample_data,
@@ -141,17 +137,11 @@ class TestFairCareAuditInit:
             sensitive_attrs={"race": "race"},
             auto_accept=True,
         )
-        assert len({a.name for a in audit.sensitive_attributes}) == len(
-            audit.sensitive_attributes
-        )
+        assert len({a.name for a in audit.sensitive_attributes}) == len(audit.sensitive_attributes)
         assert "auto-accept" in capsys.readouterr().out.lower()
 
-    def test_include_unknown_is_stored_for_later_analysis(
-        self, sample_data: pl.DataFrame
-    ) -> None:
-        audit = FairCareAudit(
-            sample_data, "y_prob", "y_true", include_unknown=False
-        )
+    def test_include_unknown_is_stored_for_later_analysis(self, sample_data: pl.DataFrame) -> None:
+        audit = FairCareAudit(sample_data, "y_prob", "y_true", include_unknown=False)
         assert audit.include_unknown is False
 
     def test_constructor_does_not_warn_for_internal_default_config(
@@ -163,9 +153,7 @@ class TestFairCareAuditInit:
             FairCareAudit(sample_data, "y_prob", "y_true")
         assert not [w for w in caught if "sensitive attribute" in str(w.message).lower()]
 
-    def test_assigning_config_without_attributes_warns(
-        self, sample_data: pl.DataFrame
-    ) -> None:
+    def test_assigning_config_without_attributes_warns(self, sample_data: pl.DataFrame) -> None:
         audit = FairCareAudit(sample_data, "y_prob", "y_true")
         with pytest.warns(UserWarning, match="sensitive attribute"):
             audit.config = FairnessConfig(model_name="Configured later")
@@ -362,9 +350,7 @@ class TestSuggestAttributes:
         ("bins", "labels"),
         [([39, 17], ["a", "b", "c"]), ([17, 39], ["a", "b"])],
     )
-    def test_invalid_custom_age_bands_raise(
-        self, bins: list[int], labels: list[str]
-    ) -> None:
+    def test_invalid_custom_age_bands_raise(self, bins: list[int], labels: list[str]) -> None:
         df = pl.DataFrame({"y_prob": [0.2, 0.8], "y_true": [0, 1], "age": [20, 70]})
         audit = FairCareAudit(df, "y_prob", "y_true")
         with pytest.raises(ConfigurationError, match="age"):
@@ -386,9 +372,7 @@ class TestAcceptSuggestedAttributes:
             audit.accept_suggested_attributes([1])
             assert audit.sensitive_attributes[0].name == suggestions[1]["suggested_name"]
 
-    def test_likely_one_based_selection_warns_then_raises(
-        self, sample_data: pl.DataFrame
-    ) -> None:
+    def test_likely_one_based_selection_warns_then_raises(self, sample_data: pl.DataFrame) -> None:
         audit = FairCareAudit(sample_data, "y_prob", "y_true")
         last_one_based = len(audit.suggest_attributes(display=False))
         with (

@@ -39,9 +39,7 @@ def results() -> AuditResults:
                 "disparities": {"B": {"auroc_difference": -0.11}},
             }
         },
-        fairness_metrics={
-            "race": {"tpr_diff": {"A": 0.0, "B": -0.08}, "suppressed_groups": ["B"]}
-        },
+        fairness_metrics={"race": {"tpr_diff": {"A": 0.0, "B": -0.08}, "suppressed_groups": ["B"]}},
         flags=[
             {
                 "metric": "tpr_diff",
@@ -88,9 +86,7 @@ def test_to_metrics_frame_has_stable_schema_and_aggregate_only_rows(
         "suppressed_in_reports",
     ]
     auroc = frame.filter(
-        (pl.col("section") == "subgroup")
-        & (pl.col("group") == "A")
-        & (pl.col("metric") == "auroc")
+        (pl.col("section") == "subgroup") & (pl.col("group") == "A") & (pl.col("metric") == "auroc")
     ).row(0, named=True)
     assert auroc["value"] == pytest.approx(0.81)
     assert auroc["ci_lower"] == pytest.approx(0.76)
@@ -98,9 +94,7 @@ def test_to_metrics_frame_has_stable_schema_and_aggregate_only_rows(
     assert auroc["n"] == 80
     suppressed = frame.filter((pl.col("group") == "B") & (pl.col("section") == "subgroup"))
     assert suppressed["suppressed_in_reports"].to_list() == [True]
-    disparity = frame.filter(
-        (pl.col("group") == "B") & (pl.col("metric") == "auroc_difference")
-    )
+    disparity = frame.filter((pl.col("group") == "B") & (pl.col("metric") == "auroc_difference"))
     assert disparity.height == 1
     assert disparity["suppressed_in_reports"].item() is True
 
@@ -152,7 +146,9 @@ def test_plot_subgroup_calibration_uses_requested_attribute(results: AuditResult
 def test_save_artifacts_stages_into_audit_directory_and_guards_overwrite(
     results: AuditResults, tmp_path: Path
 ) -> None:
-    with patch.object(results, "to_html", side_effect=lambda path, **_: Path(path).write_text("html")):
+    with patch.object(
+        results, "to_html", side_effect=lambda path, **_: Path(path).write_text("html")
+    ):
         paths = results.save_artifacts(tmp_path, formats=("html", "json"))
 
     assert paths == {
@@ -169,7 +165,9 @@ def test_save_artifacts_stages_into_audit_directory_and_guards_overwrite(
     assert paths["json"].exists()
 
 
-def test_save_artifacts_supports_all_documented_formats(results: AuditResults, tmp_path: Path) -> None:
+def test_save_artifacts_supports_all_documented_formats(
+    results: AuditResults, tmp_path: Path
+) -> None:
     def write(path: str | Path, **_: object) -> Path:
         target = Path(path)
         target.write_bytes(b"artifact")

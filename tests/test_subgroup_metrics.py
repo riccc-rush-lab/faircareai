@@ -181,19 +181,19 @@ class TestComputeSubgroupMetrics:
         rng = np.random.default_rng(19)
         y_prob = rng.uniform(0.05, 0.95, 2_000)
         y_true = rng.binomial(1, y_prob)
-        df = pl.DataFrame(
-            {"group": ["A"] * len(y_true), "y_true": y_true, "y_prob": y_prob}
-        )
+        df = pl.DataFrame({"group": ["A"] * len(y_true), "y_true": y_true, "y_prob": y_prob})
 
-        group = compute_subgroup_metrics(
-            df, "y_prob", "y_true", "group", bootstrap_ci=False
-        )["groups"]["A"]
+        group = compute_subgroup_metrics(df, "y_prob", "y_true", "group", bootstrap_ci=False)[
+            "groups"
+        ]["A"]
 
         assert group["oe_ratio"] == pytest.approx(y_true.sum() / y_prob.sum())
         assert group["calibration_slope"] == pytest.approx(1.0, abs=0.15)
         assert group["calibration_warnings"] == []
 
-    def test_calibration_bootstrap_intervals_are_deterministic(self, sample_df: pl.DataFrame) -> None:
+    def test_calibration_bootstrap_intervals_are_deterministic(
+        self, sample_df: pl.DataFrame
+    ) -> None:
         """O:E and slope percentile intervals repeat for a fixed seed."""
         first = compute_subgroup_metrics(
             sample_df,
@@ -215,12 +215,14 @@ class TestComputeSubgroupMetrics:
         )
 
         for group_name in first["groups"]:
-            assert first["groups"][group_name]["oe_ratio_ci_95"] == second["groups"][group_name][
-                "oe_ratio_ci_95"
-            ]
-            assert first["groups"][group_name]["calibration_slope_ci_95"] == second["groups"][
-                group_name
-            ]["calibration_slope_ci_95"]
+            assert (
+                first["groups"][group_name]["oe_ratio_ci_95"]
+                == second["groups"][group_name]["oe_ratio_ci_95"]
+            )
+            assert (
+                first["groups"][group_name]["calibration_slope_ci_95"]
+                == second["groups"][group_name]["calibration_slope_ci_95"]
+            )
 
     def test_single_class_returns_no_slope_with_warning(self) -> None:
         """A degenerate outcome never receives an ideal slope fallback."""
@@ -232,9 +234,9 @@ class TestComputeSubgroupMetrics:
             }
         )
 
-        group = compute_subgroup_metrics(
-            df, "y_prob", "y_true", "group", bootstrap_ci=False
-        )["groups"]["A"]
+        group = compute_subgroup_metrics(df, "y_prob", "y_true", "group", bootstrap_ci=False)[
+            "groups"
+        ]["A"]
 
         assert group["calibration_slope"] is None
         assert "single_class_outcome" in group["calibration_warnings"]
@@ -249,9 +251,9 @@ class TestComputeSubgroupMetrics:
             }
         )
 
-        group = compute_subgroup_metrics(
-            df, "y_prob", "y_true", "group", bootstrap_ci=False
-        )["groups"]["A"]
+        group = compute_subgroup_metrics(df, "y_prob", "y_true", "group", bootstrap_ci=False)[
+            "groups"
+        ]["A"]
 
         assert group["calibration_slope"] is None
         assert "constant_predicted_probability" in group["calibration_warnings"]
@@ -266,9 +268,9 @@ class TestComputeSubgroupMetrics:
             }
         )
 
-        group = compute_subgroup_metrics(
-            df, "y_prob", "y_true", "group", bootstrap_ci=False
-        )["groups"]["A"]
+        group = compute_subgroup_metrics(df, "y_prob", "y_true", "group", bootstrap_ci=False)[
+            "groups"
+        ]["A"]
 
         assert group["oe_ratio"] is None
         assert "nonpositive_expected_events" in group["calibration_warnings"]
@@ -293,9 +295,9 @@ class TestComputeSubgroupMetrics:
             }
         )
 
-        group = compute_subgroup_metrics(
-            df, "y_prob", "y_true", "group", bootstrap_ci=False
-        )["groups"]["A"]
+        group = compute_subgroup_metrics(df, "y_prob", "y_true", "group", bootstrap_ci=False)[
+            "groups"
+        ]["A"]
 
         assert group["calibration_slope"] is None
         assert "calibration_slope_fit_failed" in group["calibration_warnings"]

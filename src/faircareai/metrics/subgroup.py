@@ -158,7 +158,7 @@ def compute_subgroup_metrics(
             if bootstrap_ci and n >= 20:
                 auroc_samples = _bootstrap_auroc(y_true, y_prob, n_bootstrap, random_seed)
                 if len(auroc_samples) > 10:
-                    auroc_ci = np.percentile(auroc_samples, [2.5, 97.5])
+                    auroc_ci: np.ndarray = np.percentile(auroc_samples, [2.5, 97.5])
                     group_result["auroc_ci_95"] = [float(auroc_ci[0]), float(auroc_ci[1])]
 
         # Mean prediction
@@ -459,7 +459,7 @@ def compute_intersectional(
                 if bootstrap_ci and n >= 20:
                     auroc_samples = _bootstrap_auroc(y_true, y_prob, n_bootstrap)
                     if len(auroc_samples) > 10:
-                        auroc_ci = np.percentile(auroc_samples, [2.5, 97.5])
+                        auroc_ci: np.ndarray = np.percentile(auroc_samples, [2.5, 97.5])
                         group_result["auroc_ci_95"] = [
                             float(auroc_ci[0]),
                             float(auroc_ci[1]),

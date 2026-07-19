@@ -18,7 +18,7 @@ from __future__ import annotations
 import math
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
 import polars as pl
@@ -380,8 +380,8 @@ def bootstrap_ci_simple(
         bootstrap_sample = data[indices]
         bootstrap_stats[i] = statistic_fn(bootstrap_sample)
 
-    ci_lower = np.percentile(bootstrap_stats, 100 * alpha / 2)
-    ci_upper = np.percentile(bootstrap_stats, 100 * (1 - alpha / 2))
+    ci_lower: float = float(np.percentile(bootstrap_stats, 100 * alpha / 2))
+    ci_upper: float = float(np.percentile(bootstrap_stats, 100 * (1 - alpha / 2)))
 
     return (point_estimate, (float(ci_lower), float(ci_upper)))
 
@@ -710,7 +710,7 @@ def adjust_pvalues_holm(pvalues: np.ndarray) -> np.ndarray:
     result = np.zeros(n)
     result[order] = adjusted
 
-    return result
+    return cast(np.ndarray, result)
 
 
 def adjust_pvalues_fdr_bh(pvalues: np.ndarray) -> np.ndarray:
@@ -744,7 +744,7 @@ def adjust_pvalues_fdr_bh(pvalues: np.ndarray) -> np.ndarray:
     result = np.zeros(n)
     result[order] = adjusted
 
-    return result
+    return cast(np.ndarray, result)
 
 
 def adjust_pvalues(

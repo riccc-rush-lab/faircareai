@@ -143,9 +143,7 @@ class TestSuggestSensitiveAttributes:
     )
     def test_detects_epic_payor_columns(self, column: str) -> None:
         """Epic/Clarity payor fields are recognized as insurance."""
-        result = suggest_sensitive_attributes(
-            pl.DataFrame({column: ["Commercial", "Medicaid"]})
-        )
+        result = suggest_sensitive_attributes(pl.DataFrame({column: ["Commercial", "Medicaid"]}))
         insurance = next(s for s in result if s["suggested_name"] == "insurance")
         assert insurance["detected_column"] == column
 

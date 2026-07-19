@@ -30,8 +30,7 @@ def is_pyspark_dataframe(data: object) -> bool:
     module = getattr(cls, "__module__", "")
     spark_module = module == "pyspark.sql" or module.startswith("pyspark.sql.")
     spark_interface = all(
-        callable(getattr(data, method, None))
-        for method in ("select", "limit", "count", "toPandas")
+        callable(getattr(data, method, None)) for method in ("select", "limit", "count", "toPandas")
     )
     return spark_module and spark_interface and hasattr(data, "schema")
 

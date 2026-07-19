@@ -199,17 +199,14 @@ def suggest_sensitive_attributes(
             age_labels if age_labels is not None else ["0-17", "18-39", "40-64", "65+"]
         )
         if not resolved_bins or any(
-            current >= following
-            for current, following in pairwise(resolved_bins)
+            current >= following for current, following in pairwise(resolved_bins)
         ):
             raise ValueError("age_bins must contain strictly increasing upper bounds")
         if len(resolved_labels) != len(resolved_bins) + 1:
             raise ValueError("age_labels must contain exactly len(age_bins) + 1 labels")
 
         derived = df.select(
-            pl.col(age_column)
-            .cut(breaks=resolved_bins, labels=resolved_labels)
-            .alias("age_band")
+            pl.col(age_column).cut(breaks=resolved_bins, labels=resolved_labels).alias("age_band")
         )["age_band"]
         unique_vals = derived.drop_nulls().unique().sort().cast(pl.String).to_list()
         suggestions.append(
@@ -220,9 +217,7 @@ def suggest_sensitive_attributes(
                 "n_unique": len(unique_vals),
                 "missing_rate": float(derived.null_count() / len(df)),
                 "suggested_reference": None,
-                "clinical_justification": SUGGESTED_PATTERNS["age_group"][
-                    "clinical_justification"
-                ],
+                "clinical_justification": SUGGESTED_PATTERNS["age_group"]["clinical_justification"],
                 "accepted": False,
                 "derived": True,
                 "source_column": age_column,

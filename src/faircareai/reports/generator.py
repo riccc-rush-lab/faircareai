@@ -1078,13 +1078,17 @@ def _generate_descriptive_section(results: "AuditResults") -> str:
         for group_name, group_data in groups.items():
             outcome_data = outcome_groups.get(group_name, {})
             suppressed = group_data.get("suppressed_in_reports", False)
-            suppression_label = f"suppressed (n<{results.config.get_threshold('suppress_cell_n', 11)})"
+            suppression_label = (
+                f"suppressed (n<{results.config.get_threshold('suppress_cell_n', 11)})"
+            )
             rr = outcome_data.get("rate_ratio")
             rr_str = suppression_label if suppressed else (f"{rr:.2f}" if rr is not None else "ref")
             ref_marker = " (ref)" if group_name == reference else ""
-            n_cell = suppression_label if suppressed else f'{group_data.get("n", 0):,}'
+            n_cell = suppression_label if suppressed else f"{group_data.get('n', 0):,}"
             pct_cell = suppression_label if suppressed else group_data.get("pct_fmt", "N/A")
-            outcome_cell = suppression_label if suppressed else outcome_data.get("outcome_rate_pct", "N/A")
+            outcome_cell = (
+                suppression_label if suppressed else outcome_data.get("outcome_rate_pct", "N/A")
+            )
 
             attr_rows += f"""
             <tr>
@@ -1411,7 +1415,9 @@ def _generate_subgroup_section(results: "AuditResults") -> str:
                 continue
 
             suppressed = group_data.get("suppressed_in_reports", False)
-            suppression_label = f"suppressed (n<{results.config.get_threshold('suppress_cell_n', 11)})"
+            suppression_label = (
+                f"suppressed (n<{results.config.get_threshold('suppress_cell_n', 11)})"
+            )
 
             auroc = group_data.get("auroc")
             auroc_str = f"{auroc:.3f}" if auroc is not None else "N/A"
@@ -1426,7 +1432,7 @@ def _generate_subgroup_section(results: "AuditResults") -> str:
             ref_marker = " (ref)" if group_data.get("is_reference") else ""
             if suppressed:
                 auroc_str = tpr_str = fpr_str = oe_str = slope_str = suppression_label
-            n_cell = suppression_label if suppressed else f'{group_data.get("n", 0):,}'
+            n_cell = suppression_label if suppressed else f"{group_data.get('n', 0):,}"
 
             subgroup_rows += f"""
             <tr>
@@ -3135,7 +3141,7 @@ def _generate_governance_html(results: "AuditResults") -> str:
                 <p style="margin: 8px 0; color: #191919;"><strong>Definition:</strong> {metric_desc}</p>
                 <p style="margin: 8px 0 0 0; color: #6B6B6B; font-size: 14px;"><strong>Justification:</strong> {metric_justification}</p>
             </div>
-            {f'<div class="note" style="border-left-color: #D55E00;"><strong>{intervention_callout}</strong></div>' if intervention_callout else ''}
+            {f'<div class="note" style="border-left-color: #D55E00;"><strong>{intervention_callout}</strong></div>' if intervention_callout else ""}
 
             <p style="color: #6B6B6B; font-size: 16px; margin-bottom: 20px;">
                 Performance varies across demographic groups. Charts corresponding to your selected metric are

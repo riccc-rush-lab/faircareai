@@ -735,7 +735,9 @@ def create_subgroup_calibration_pair_plot(
             row=1,
             col=column,
         )
-    fig.update_yaxes(title_text="Demographic Subgroup", title_font=dict(size=14), tickfont=dict(size=14))
+    fig.update_yaxes(
+        title_text="Demographic Subgroup", title_font=dict(size=14), tickfont=dict(size=14)
+    )
 
     add_source_annotation(
         fig, source_note, citation="Van Calster et al. (2025) Lancet Digital Health"

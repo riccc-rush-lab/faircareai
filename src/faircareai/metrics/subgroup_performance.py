@@ -280,7 +280,7 @@ def _compute_auroc_metrics(
     if bootstrap_ci and len(y_true) >= 20:
         auroc_samples = _bootstrap_metric(y_true, y_prob, roc_auc_score, n_bootstrap)
         if len(auroc_samples) > MIN_BOOTSTRAP_SAMPLES:
-            ci = np.percentile(auroc_samples, [2.5, 97.5])
+            ci: np.ndarray = np.percentile(auroc_samples, [2.5, 97.5])
             result["auroc_ci_95"] = [float(ci[0]), float(ci[1])]
             result["auroc_se"] = float(np.std(auroc_samples))
             result["auroc_ci_fmt"] = f"(95% CI: {ci[0]:.3f}-{ci[1]:.3f})"

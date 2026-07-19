@@ -1048,16 +1048,12 @@ class FairCareAudit:
 
         return flags
 
-    def _check_calibration_violations(
-        self, results: AuditResults, thresholds: dict
-    ) -> list[dict]:
+    def _check_calibration_violations(self, results: AuditResults, thresholds: dict) -> list[dict]:
         """Flag subgroup O:E and calibration slopes that deviate from one."""
         flags: list[dict] = []
         limits = {
             "oe_ratio": float(thresholds.get("max_oe_deviation", 0.10)),
-            "calibration_slope": float(
-                thresholds.get("max_calibration_slope_deviation", 0.10)
-            ),
+            "calibration_slope": float(thresholds.get("max_calibration_slope_deviation", 0.10)),
         }
         for attribute, payload in results.subgroup_performance.items():
             for group, metrics in payload.get("groups", {}).items():

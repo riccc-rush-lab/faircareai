@@ -560,9 +560,7 @@ class AuditResults:
         normalized_persona = _normalize_persona(persona)
 
         output_dir = Path(destination) / self.audit_id
-        final_paths: dict[str, Path] = {
-            name: output_dir / filenames[name] for name in requested
-        }
+        final_paths: dict[str, Path] = {name: output_dir / filenames[name] for name in requested}
         existing = [path for path in final_paths.values() if path.exists()]
         if existing and not overwrite:
             raise FileExistsError(
@@ -622,15 +620,10 @@ class AuditResults:
         if mode == "append" and exists:
             escaped_id = self.audit_id.replace("'", "''")
             duplicate_count = (
-                spark.table(table)
-                .where(f"audit_id = '{escaped_id}'")
-                .limit(1)
-                .count()
+                spark.table(table).where(f"audit_id = '{escaped_id}'").limit(1).count()
             )
             if duplicate_count:
-                raise ValueError(
-                    f"Audit {self.audit_id} is already present in Delta table {table}"
-                )
+                raise ValueError(f"Audit {self.audit_id} is already present in Delta table {table}")
 
         metrics_pdf = self.to_metrics_frame().to_pandas()
         try:

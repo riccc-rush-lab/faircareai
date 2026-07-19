@@ -302,8 +302,8 @@ def stratified_permutation_test(
     p_value = (1 + count_extreme) / (1 + n_perms)
 
     # CI from null distribution
-    ci_lower = np.percentile(null_distribution, 100 * alpha / 2)
-    ci_upper = np.percentile(null_distribution, 100 * (1 - alpha / 2))
+    ci_lower: float = float(np.percentile(null_distribution, 100 * alpha / 2))
+    ci_upper: float = float(np.percentile(null_distribution, 100 * (1 - alpha / 2)))
 
     return {
         "observed_stat": observed_stat,
