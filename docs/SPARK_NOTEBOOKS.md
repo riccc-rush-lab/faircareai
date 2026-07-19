@@ -1,5 +1,12 @@
 # Microsoft Fabric and Databricks notebooks
 
+For the installation matrix and Jupyter/marimo quickstarts, start with
+[NOTEBOOKS.md](NOTEBOOKS.md). This guide is the detailed PySpark reference.
+
+In Fabric or Databricks, install the published package with `%pip install faircare`
+and restart the notebook session before importing it. PySpark is supplied by the
+managed platform and is not installed by FairCare.
+
 FairCareAI accepts a batch PySpark DataFrame directly. It selects only the
 prediction, outcome, detected demographic, explicitly configured sensitive,
 and `spark_extra_columns` fields. Before collecting, it persists the narrow
@@ -21,7 +28,7 @@ audit = FairCareAudit(
         fairness_justification="The model triggers outreach, so both missed benefit and false-alarm burden matter.",
     ),
 )
-results = audit.run(fast=True, show=True)
+results = audit.run(fast=True)
 ```
 
 `show=True` renders a summary, stable Polars tables, and Plotly figures using

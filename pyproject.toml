@@ -24,6 +24,9 @@ keywords = [
     "bias",
     "equity",
     "responsible-ai",
+    "jupyter",
+    "marimo",
+    "pyspark",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

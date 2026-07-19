@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import os
+import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
@@ -13,8 +14,8 @@ import polars as pl
 
 from faircareai.core.exceptions import FairCareAIError
 
-NotebookPlatform = Literal["auto", "fabric", "databricks", "jupyter"]
-ResolvedPlatform = Literal["fabric", "databricks", "jupyter", "terminal"]
+NotebookPlatform = Literal["auto", "fabric", "databricks", "jupyter", "marimo"]
+ResolvedPlatform = Literal["fabric", "databricks", "jupyter", "marimo", "terminal"]
 PlotlyJsMode = Literal["cdn", "inline"]
 
 SECTION_ORDER = (
@@ -26,8 +27,8 @@ SECTION_ORDER = (
     "flags",
     "figures",
 )
-_PUBLIC_PLATFORMS = {"auto", "fabric", "databricks", "jupyter"}
-_RESOLVED_PLATFORMS = {"fabric", "databricks", "jupyter", "terminal"}
+_PUBLIC_PLATFORMS = {"auto", "fabric", "databricks", "jupyter", "marimo"}
+_RESOLVED_PLATFORMS = {"fabric", "databricks", "jupyter", "marimo", "terminal"}
 
 
 class DisplayError(FairCareAIError):
@@ -56,7 +57,7 @@ def normalize_display_options(
     normalized_sections = _normalize_sections(sections)
     if platform not in _PUBLIC_PLATFORMS:
         raise ValueError(
-            "platform must be one of: auto, fabric, databricks, jupyter"
+            "platform must be one of: auto, fabric, databricks, jupyter, marimo"
         )
     if isinstance(max_rows, bool) or not isinstance(max_rows, int) or not 1 <= max_rows <= 10_000:
         raise ValueError("max_rows must be an integer between 1 and 10,000")
@@ -68,7 +69,7 @@ def normalize_display_options(
 def detect_notebook_platform(
     *, get_ipython: Callable[[], Any] | None = None
 ) -> ResolvedPlatform:
-    """Detect Databricks, then Fabric, then Jupyter without eager dependencies."""
+    """Detect Databricks, Fabric, marimo, then Jupyter without dependencies."""
 
     if any(
         os.environ.get(name)
@@ -97,6 +98,12 @@ def detect_notebook_platform(
                 return "jupyter"
         except Exception:
             pass
+
+    # marimo imports its runtime module before user cells execute. Prefer an
+    # active IPython kernel when both packages are loaded, so a Jupyter user
+    # who imports marimo is not redirected to marimo's output API.
+    if "marimo" in sys.modules:
+        return "marimo"
     return "terminal"
 
 
@@ -260,5 +267,21 @@ def _default_display_functions(
             return display, lambda value: display(HTML(value)), display
         except ImportError:
             pass
+
+    if platform == "marimo":
+        try:
+            marimo = importlib.import_module("marimo")
+        except ImportError as exc:
+            raise DisplayError(
+                "Marimo display requires marimo. Install it with `pip install marimo`."
+            ) from exc
+
+        return (
+            lambda value: marimo.output.append(marimo.ui.table(value, selection=None)),
+            lambda value: marimo.output.append(marimo.Html(value)),
+            lambda value: marimo.output.append(marimo.md(f"""```text
+{value}
+```""")),
+        )
 
     return print, print, print

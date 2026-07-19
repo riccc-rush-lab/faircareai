@@ -6,6 +6,11 @@ Complete guide to using FairCareAI for healthcare AI fairness auditing.
 
 ## Installation
 
+FairCare's PyPI distribution is `faircare`; its Python import and CLI are
+`faircareai`. Notebook hosts (Jupyter, marimo, Fabric, and Databricks) and
+PySpark are intentionally host-owned optional runtimes. See
+[NOTEBOOKS.md](NOTEBOOKS.md) for environment-specific setup.
+
 ### Basic Installation
 
 ```bash

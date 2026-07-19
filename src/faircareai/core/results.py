@@ -488,11 +488,11 @@ class AuditResults:
         sections: str | Sequence[str] = "all",
         *,
         persona: OutputPersona | str = OutputPersona.DATA_SCIENTIST,
-        platform: Literal["auto", "fabric", "databricks", "jupyter"] = "auto",
+        platform: Literal["auto", "fabric", "databricks", "jupyter", "marimo"] = "auto",
         max_rows: int = 1_000,
         plotlyjs: Literal["cdn", "inline"] = "cdn",
     ) -> "AuditResults":
-        """Render tables and Plotly figures in Fabric, Databricks, or Jupyter."""
+        """Render tables and Plotly figures in Fabric, Databricks, Jupyter, or marimo."""
         from faircareai.notebook import (
             create_notebook_display,
             normalize_display_options,
