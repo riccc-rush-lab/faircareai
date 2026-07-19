@@ -44,6 +44,11 @@ class TestSuggestedPatterns:
         """Test that insurance patterns are defined."""
         assert "insurance" in SUGGESTED_PATTERNS
 
+    def test_contains_ethnicity_separate_from_race(self) -> None:
+        """Ethnicity is independently auditable rather than folded into race."""
+        assert "ethnicity" in SUGGESTED_PATTERNS
+        assert "ethnicity" not in SUGGESTED_PATTERNS["race"]["patterns"]
+
     def test_contains_language(self) -> None:
         """Test that language patterns are defined."""
         assert "language" in SUGGESTED_PATTERNS
@@ -124,6 +129,30 @@ class TestSuggestSensitiveAttributes:
         result = suggest_sensitive_attributes(df_with_insurance)
         names = [s["suggested_name"] for s in result]
         assert "insurance" in names
+
+    @pytest.mark.parametrize(
+        "column",
+        ["payor", "primary_payor", "financial_class"],
+    )
+    def test_detects_epic_payor_columns(self, column: str) -> None:
+        """Epic/Clarity payor fields are recognized as insurance."""
+        result = suggest_sensitive_attributes(
+            pl.DataFrame({column: ["Commercial", "Medicaid"]})
+        )
+        insurance = next(s for s in result if s["suggested_name"] == "insurance")
+        assert insurance["detected_column"] == column
+
+    def test_detects_race_and_ethnicity_independently(self) -> None:
+        """A schema containing both fields yields both suggestions."""
+        result = suggest_sensitive_attributes(
+            pl.DataFrame(
+                {
+                    "race": ["White", "Black"],
+                    "ethnicity": ["Not Hispanic", "Hispanic"],
+                }
+            )
+        )
+        assert [s["suggested_name"] for s in result] == ["race", "ethnicity"]
 
     def test_insurance_reference_alias_resolves_private(self) -> None:
         """Test that insurance reference resolves Commercial -> Private alias."""
@@ -312,6 +341,15 @@ class TestDisplaySuggestions:
         """Test that output contains usage instructions."""
         result = display_suggestions(sample_suggestions)
         assert "accept_suggested_attributes" in result
+
+    def test_uses_zero_based_indexes_and_recommends_names(
+        self, sample_suggestions: list[dict]
+    ) -> None:
+        """Displayed selection guidance is unambiguously zero-based."""
+        result = display_suggestions(sample_suggestions)
+        assert "[0] RACE" in result
+        assert "[1] SEX" in result
+        assert "recommended" in result.lower()
 
     def test_empty_suggestions_message(self) -> None:
         """Test message for empty suggestions."""

@@ -8,6 +8,7 @@ methodology. Healthcare organizations interpret results based on their clinical
 context, organizational values, and governance frameworks.
 """
 
+import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -129,6 +130,9 @@ class FairCareAudit:
         target_col: str,
         config: FairnessConfig | None = None,
         threshold: float = 0.5,
+        sensitive_attrs: dict[str, str] | None = None,
+        auto_accept: bool = False,
+        include_unknown: bool = True,
     ):
         """
         Initialize a fairness audit.
@@ -193,19 +197,59 @@ class FairCareAudit:
         self.pred_col = pred_col
         self.target_col = target_col
         self.threshold = threshold
-        self.config = config or FairnessConfig(model_name="Unnamed Model")
+        self.include_unknown = include_unknown
+
+        # Initialize registration state before configuration. Constructor config
+        # is normal setup and must not trigger the later-assignment warning.
+        self.sensitive_attributes: list[SensitiveAttribute] = []
+        self.intersections: list[list[str]] = []
+        self._config = config or FairnessConfig(model_name="Unnamed Model")
 
         # Store for visualization access
         self.y_true_col = target_col
         self.y_prob_col = pred_col
 
-        self.sensitive_attributes: list[SensitiveAttribute] = []
-        self.intersections: list[list[str]] = []
-
         self._validate_data()
 
         # Auto-detect suggested attributes
         self._suggestions = suggest_sensitive_attributes(self.df)
+
+        for name, column in (sensitive_attrs or {}).items():
+            self.add_sensitive_attribute(name=name, column=column)
+
+        if auto_accept:
+            pending = [
+                suggestion["suggested_name"]
+                for suggestion in self._suggestions
+                if not any(
+                    attr.name == suggestion["suggested_name"]
+                    or attr.column == suggestion["detected_column"]
+                    for attr in self.sensitive_attributes
+                )
+            ]
+            print(
+                "FairCareAI auto-accept enabled: registering detected sensitive "
+                f"attributes {pending or '(none remaining)'}."
+            )
+            self.accept_suggested_attributes(pending)
+
+    @property
+    def config(self) -> FairnessConfig:
+        """Return the active fairness configuration."""
+        return self._config
+
+    @config.setter
+    def config(self, value: FairnessConfig) -> None:
+        """Set configuration and flag likely incomplete interactive setup."""
+        self._config = value
+        if hasattr(self, "sensitive_attributes") and not self.sensitive_attributes:
+            warnings.warn(
+                "Fairness configuration was assigned before any sensitive attributes "
+                "were registered. Use suggest_attributes(), pass sensitive_attrs=..., "
+                "or call add_sensitive_attribute() before run().",
+                UserWarning,
+                stacklevel=2,
+            )
 
     def __getstate__(self) -> dict:
         """Return picklable state (exclude logger for Windows multiprocessing)."""
@@ -360,7 +404,13 @@ class FairCareAudit:
                 f"Consider collecting more data for robust analysis."
             )
 
-    def suggest_attributes(self, display: bool = True) -> list[dict]:
+    def suggest_attributes(
+        self,
+        display: bool = True,
+        *,
+        age_bins: list[int] | None = None,
+        age_labels: list[str] | None = None,
+    ) -> list[dict]:
         """
         Show suggested sensitive attributes based on detected columns.
 
@@ -373,10 +423,16 @@ class FairCareAudit:
         Returns:
             List of suggestion dicts. User must explicitly accept.
         """
-        if display:
-            logger.info(
-                "Suggested sensitive attributes:\n%s", display_suggestions(self._suggestions)
+        try:
+            self._suggestions = suggest_sensitive_attributes(
+                self.df,
+                age_bins=age_bins,
+                age_labels=age_labels,
             )
+        except ValueError as exc:
+            raise ConfigurationError("age_bands", str(exc)) from exc
+        if display:
+            print(display_suggestions(self._suggestions))
         return self._suggestions
 
     def accept_suggested_attributes(
@@ -389,9 +445,7 @@ class FairCareAudit:
 
         Args:
             selections: 0-based indices (Python convention) or names of
-                suggestions to accept. Legacy 1-based indices are also
-                supported: if all integer indices are >= 1 and none are 0,
-                they are interpreted as 1-based for backward compatibility.
+                suggestions to accept. Selecting by name is recommended.
             modify: Overrides for accepted suggestions, e.g.
                     {"race": {"reference": "Black"}}
 
@@ -400,33 +454,29 @@ class FairCareAudit:
         """
         modify = modify or {}
 
-        # Detect indexing convention: if any integer index is 0 the caller
-        # is using 0-based (Python convention).  If all integers are >= 1,
-        # assume legacy 1-based indexing for backward compatibility.
         int_indices = [s for s in selections if isinstance(s, int)]
-        zero_based = any(i == 0 for i in int_indices)
+        if (
+            int_indices
+            and all(index >= 1 for index in int_indices)
+            and any(index == len(self._suggestions) for index in int_indices)
+        ):
+            warnings.warn(
+                "Sensitive-attribute suggestion indexes are now always 0-based. "
+                "Select by suggestion name (recommended) or use indexes from 0 to "
+                f"{len(self._suggestions) - 1}.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         for sel in selections:
             # Find the suggestion
             if isinstance(sel, int):
-                if zero_based:
-                    # 0-based indexing (Python convention)
-                    if 0 <= sel < len(self._suggestions):
-                        suggestion = self._suggestions[sel]
-                    else:
-                        raise ConfigurationError(
-                            "selection",
-                            f"Invalid index: {sel}. Valid: 0-{len(self._suggestions) - 1}",
-                        )
-                elif 1 <= sel <= len(self._suggestions):
-                    # Legacy 1-based indexing
-                    suggestion = self._suggestions[sel - 1]
+                if 0 <= sel < len(self._suggestions):
+                    suggestion = self._suggestions[sel]
                 else:
                     raise ConfigurationError(
                         "selection",
-                        f"Invalid index: {sel}. "
-                        f"Valid: 0-{len(self._suggestions) - 1} (0-based) "
-                        f"or 1-{len(self._suggestions)} (1-based)",
+                        f"Invalid index: {sel}. Valid: 0-{len(self._suggestions) - 1}",
                     )
             else:
                 matches = [s for s in self._suggestions if s["suggested_name"] == sel]
@@ -436,6 +486,17 @@ class FairCareAudit:
 
             # Apply any modifications
             overrides = modify.get(suggestion["suggested_name"], {})
+
+            if suggestion.get("derived"):
+                source = suggestion["source_column"]
+                self.df = self.df.with_columns(
+                    pl.col(source)
+                    .cut(
+                        breaks=suggestion["age_bins"],
+                        labels=suggestion["age_labels"],
+                    )
+                    .alias(suggestion["detected_column"])
+                )
 
             self.add_sensitive_attribute(
                 name=suggestion["suggested_name"],
@@ -573,6 +634,13 @@ class FairCareAudit:
             categories=categories,
             clinical_justification=clinical_justification,
         )
+
+        for index, existing in enumerate(self.sensitive_attributes):
+            if existing.name == name:
+                self.sensitive_attributes[index] = attr
+                return self
+            if existing.column == col:
+                return self
 
         self.sensitive_attributes.append(attr)
         return self
