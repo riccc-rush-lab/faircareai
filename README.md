@@ -9,6 +9,8 @@
 
 **Fairness auditing for clinical AI — two audiences, one run.**
 
+Notebook users: see the [Microsoft Fabric and Databricks guide](docs/SPARK_NOTEBOOKS.md).
+
 ---
 
 ## Why FairCareAI Exists
@@ -155,6 +157,41 @@ Python >= 3.10. See `pyproject.toml` for the complete dependency list.
 | CSV | `FairCareAudit(data="data.csv", ...)` |
 | Polars DataFrame | `FairCareAudit(data=pl_df, ...)` |
 | Pandas DataFrame | `FairCareAudit(data=pd_df, ...)` |
+| PySpark DataFrame | `FairCareAudit(data=spark_df, ..., max_collect_rows=500_000)` |
+
+### Fabric and Databricks notebooks
+
+FairCareAI narrows a batch PySpark DataFrame to the required prediction, outcome,
+and demographic columns, verifies the configured row limit, then collects the
+bounded analysis data to the driver. Streaming and complex nested columns are
+rejected with an actionable error.
+
+```python
+audit = FairCareAudit(
+    spark_df,
+    pred_col="risk_score",
+    target_col="readmit_30d",
+    sensitive_attrs={"race": "race", "insurance": "payor"},
+    max_collect_rows=500_000,
+)
+results = audit.run(fast=True, show=True)
+
+# Fabric Lakehouse Files or a Databricks Volume
+results.save_artifacts("/lakehouse/default/Files/faircare/audit-001")
+# results.save_artifacts("/Volumes/catalog/schema/volume/faircare/audit-001")
+
+# Queryable Delta history
+results.save_delta(spark, "governance.faircare_audit_metrics")
+```
+
+`fast=True` uses 200 bootstrap iterations for iteration; the default uses 1,000
+for final analysis. On the motivating 215k-row, roughly 40-subgroup workload,
+the planning target is about 3 minutes fast versus 15 minutes full, but actual
+runtime depends on driver size and subgroup composition.
+
+`show=True` displays notebook tables and Plotly figures; it does not persist
+anything. Use `save_artifacts()` for files and `save_delta()` for a long-form,
+queryable metric table. The raw patient-level input is never written by these APIs.
 
 ### Auto-Detected Sensitive Attributes
 

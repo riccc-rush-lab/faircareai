@@ -6,6 +6,7 @@ import pandas as pd
 import polars as pl
 import pytest
 
+from faircareai import FairCareAudit
 from faircareai.core.exceptions import DataValidationError
 from faircareai.data.spark_adapter import is_pyspark_dataframe, spark_to_polars
 
@@ -125,6 +126,30 @@ def test_collects_only_deduplicated_required_columns_with_guard() -> None:
     assert fake.limit_value == 3
     assert fake.persisted_with is FakeStorageLevel.MEMORY_AND_DISK
     assert fake.unpersisted
+
+
+def test_audit_accepts_spark_dataframe_and_collects_only_audit_columns() -> None:
+    fake = FakeSparkFrame(
+        pd.DataFrame(
+            {
+                "prediction": [0.2, 0.8],
+                "outcome": [0, 1],
+                "race": ["A", "B"],
+                "unused_phi": ["x", "y"],
+            }
+        )
+    )
+
+    audit = FairCareAudit(
+        fake,
+        pred_col="prediction",
+        target_col="outcome",
+        sensitive_attrs={"race": "race"},
+        max_collect_rows=10,
+    )
+
+    assert audit.df.columns == ["prediction", "outcome", "race"]
+    assert fake.selected == ["prediction", "outcome", "race"]
 
 
 @pytest.mark.parametrize("limit", [0, -1, True, 1.5])

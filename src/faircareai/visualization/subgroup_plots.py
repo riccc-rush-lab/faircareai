@@ -57,6 +57,15 @@ from .utils import add_source_annotation
 register_plotly_template()
 
 
+def _reportable_groups(results: dict[str, Any]) -> dict[str, Any]:
+    """Exclude publication-suppressed groups from chart traces and alt text."""
+    return {
+        name: data
+        for name, data in results.get("groups", {}).items()
+        if not isinstance(data, dict) or not data.get("suppressed_in_reports", False)
+    }
+
+
 # =============================================================================
 # ALT TEXT GENERATION FOR WCAG 2.1 AA COMPLIANCE
 # =============================================================================
@@ -67,7 +76,7 @@ def _generate_auroc_forest_alt_text(
     title: str,
 ) -> str:
     """Generate accessible alt text for AUROC forest plot."""
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
     n_groups = len(groups)
 
     if n_groups == 0:
@@ -101,7 +110,7 @@ def _generate_calibration_alt_text(
     title: str,
 ) -> str:
     """Generate accessible alt text for calibration plots."""
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
     n_groups = len(groups)
 
     if n_groups == 0:
@@ -135,7 +144,7 @@ def _generate_decision_curve_alt_text(
     threshold: float,
 ) -> str:
     """Generate accessible alt text for decision curves."""
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
     n_groups = len(groups)
 
     if n_groups == 0:
@@ -167,7 +176,7 @@ def _generate_risk_distribution_alt_text(
     title: str,
 ) -> str:
     """Generate accessible alt text for risk distribution plots."""
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
     n_groups = len(groups)
 
     if n_groups == 0:
@@ -240,7 +249,7 @@ def create_auroc_forest_plot(
     metric_label = get_label("auroc", persona, "name")
     if title is None:
         title = f"{metric_label} by Demographic Subgroup"
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
 
     if not groups:
         fig = go.Figure()
@@ -457,7 +466,7 @@ def create_calibration_plot_by_subgroup(
     x_label, y_label = get_axis_labels("calibration", persona)
     if title is None:
         title = f"{metric_label} by Demographic Subgroup"
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
 
     if not groups:
         fig = go.Figure()
@@ -616,7 +625,7 @@ def create_subgroup_calibration_pair_plot(
     Both panels are centered on the ideal value of 1.0. Group color and text labels
     provide redundant encodings, so the figure does not rely on color alone.
     """
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
     eligible_groups = [(name, data) for name, data in groups.items() if "error" not in data]
     if not eligible_groups:
         fig = go.Figure()
@@ -778,7 +787,7 @@ def create_decision_curve_by_subgroup(
     x_label, y_label = get_axis_labels("decision_curve", persona)
     if title is None:
         title = f"{metric_label} by Demographic Subgroup"
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
     threshold = results.get("primary_threshold", results.get("threshold", 0.5))
 
     # Support compute_subgroup_metrics_suite output (by_subgroup -> clinical_utility -> decision_curve)
@@ -972,7 +981,7 @@ def create_risk_distribution_plot(
     metric_label = get_label("risk_distribution", persona, "name")
     if title is None:
         title = f"{metric_label} by Demographic Subgroup"
-    groups = results.get("groups", {})
+    groups = _reportable_groups(results)
 
     if not groups:
         fig = go.Figure()

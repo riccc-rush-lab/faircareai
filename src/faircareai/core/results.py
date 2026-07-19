@@ -9,10 +9,14 @@ organizational values, and governance frameworks.
 """
 
 import json
+import os
+import shutil
+import tempfile
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
 import numpy as np
@@ -299,6 +303,22 @@ class AuditResults:
 
         return plot_subgroup_comparison(self, metric=metric)
 
+    def plot_subgroup_calibration(self, attribute: str) -> "go.Figure":
+        """Plot observed:expected ratio and calibration slope by subgroup."""
+        from faircareai.visualization.subgroup_plots import (
+            create_subgroup_calibration_pair_plot,
+        )
+
+        if attribute not in self.subgroup_performance:
+            available = ", ".join(map(str, self.subgroup_performance)) or "none"
+            raise ValueError(
+                f"Unknown sensitive attribute '{attribute}'. Available attributes: {available}"
+            )
+        return create_subgroup_calibration_pair_plot(
+            self.subgroup_performance[attribute],
+            title=f"Subgroup Calibration by {attribute}",
+        )
+
     def plot_executive_summary(self) -> "go.Figure":
         """Plot executive summary for governance committee.
 
@@ -328,6 +348,424 @@ class AuditResults:
         )
 
         return create_go_nogo_scorecard(self)
+
+    # === Notebook and persistence methods ===
+
+    def to_metrics_frame(self) -> pl.DataFrame:
+        """Return normalized, aggregate-only metrics with a stable schema."""
+        rows: list[dict[str, Any]] = []
+
+        for category, metrics in self.overall_performance.items():
+            if not isinstance(metrics, dict):
+                continue
+            section = "calibration" if category == "calibration" else "overall"
+            rows.extend(self._metric_rows(section=section, metrics=metrics))
+
+        for attribute, attribute_data in self.subgroup_performance.items():
+            if not isinstance(attribute_data, dict):
+                continue
+            groups = attribute_data.get("groups", {})
+            if isinstance(groups, dict):
+                for group, group_data in groups.items():
+                    if not isinstance(group_data, dict):
+                        continue
+                    n = _as_int(group_data.get("n"))
+                    suppressed = bool(group_data.get("suppressed_in_reports", False))
+                    for metric, value in group_data.items():
+                        section = (
+                            "calibration"
+                            if metric in {"oe_ratio", "calibration_slope"}
+                            else "subgroup"
+                        )
+                        row = self._metric_row(
+                            section=section,
+                            metric=metric,
+                            value=value,
+                            metrics=group_data,
+                            attribute=str(attribute),
+                            group=str(group),
+                            n=n,
+                            suppressed=suppressed,
+                        )
+                        if row is not None:
+                            rows.append(row)
+
+            disparities = attribute_data.get("disparities", {})
+            if isinstance(disparities, dict):
+                for group, group_metrics in disparities.items():
+                    if not isinstance(group_metrics, dict):
+                        continue
+                    group_data = groups.get(group, {}) if isinstance(groups, dict) else {}
+                    is_suppressed = isinstance(group_data, dict) and bool(
+                        group_data.get("suppressed_in_reports", False)
+                    )
+                    rows.extend(
+                        self._metric_rows(
+                            section="disparity",
+                            metrics=group_metrics,
+                            attribute=str(attribute),
+                            group=str(group),
+                            suppressed_groups={str(group)} if is_suppressed else set(),
+                        )
+                    )
+
+        for attribute, metrics in self.fairness_metrics.items():
+            if isinstance(metrics, dict):
+                suppressed_groups = {str(group) for group in metrics.get("suppressed_groups", [])}
+                rows.extend(
+                    self._metric_rows(
+                        section="disparity",
+                        metrics=metrics,
+                        attribute=str(attribute),
+                        suppressed_groups=suppressed_groups,
+                    )
+                )
+
+        for flag in self.flags:
+            rows.append(
+                self._base_metric_row(
+                    section="flag",
+                    attribute=_as_string(flag.get("attribute")),
+                    group=_as_string(flag.get("group")),
+                    metric=str(flag.get("metric", "flag")),
+                    value=_as_float(flag.get("value")),
+                    n=_as_int(flag.get("n")),
+                    status=_as_string(flag.get("status") or flag.get("severity")),
+                    suppressed=bool(flag.get("suppressed_in_reports", False)),
+                )
+            )
+
+        schema = {
+            "audit_id": pl.String,
+            "run_timestamp": pl.String,
+            "model_name": pl.String,
+            "model_version": pl.String,
+            "section": pl.String,
+            "attribute": pl.String,
+            "group": pl.String,
+            "metric": pl.String,
+            "value": pl.Float64,
+            "ci_lower": pl.Float64,
+            "ci_upper": pl.Float64,
+            "n": pl.Int64,
+            "status": pl.String,
+            "suppressed_in_reports": pl.Boolean,
+        }
+        return pl.DataFrame(rows, schema=schema) if rows else pl.DataFrame(schema=schema)
+
+    def to_tables(self) -> dict[str, pl.DataFrame]:
+        """Return small presentation-ready tables used by notebook displays."""
+        frame = self.to_metrics_frame()
+        suppression_label = f"suppressed (n<{self.config.get_threshold('suppress_cell_n', 11)})"
+        frame = frame.with_columns(
+            pl.when(pl.col("suppressed_in_reports"))
+            .then(pl.lit(suppression_label))
+            .otherwise(pl.col("value").cast(pl.String))
+            .alias("display_value"),
+            pl.when(pl.col("suppressed_in_reports"))
+            .then(None)
+            .otherwise(pl.col("value"))
+            .alias("value"),
+            pl.when(pl.col("suppressed_in_reports"))
+            .then(None)
+            .otherwise(pl.col("ci_lower"))
+            .alias("ci_lower"),
+            pl.when(pl.col("suppressed_in_reports"))
+            .then(None)
+            .otherwise(pl.col("ci_upper"))
+            .alias("ci_upper"),
+        )
+        return {
+            "overall": frame.filter(pl.col("section") == "overall"),
+            "subgroups": frame.filter(pl.col("section") == "subgroup"),
+            "disparities": frame.filter(pl.col("section") == "disparity"),
+            "calibration": frame.filter(pl.col("section") == "calibration"),
+            "flags": frame.filter(pl.col("section") == "flag"),
+        }
+
+    def show(
+        self,
+        sections: str | Sequence[str] = "all",
+        *,
+        persona: OutputPersona | str = OutputPersona.DATA_SCIENTIST,
+        platform: Literal["auto", "fabric", "databricks", "jupyter"] = "auto",
+        max_rows: int = 1_000,
+        plotlyjs: Literal["cdn", "inline"] = "cdn",
+    ) -> "AuditResults":
+        """Render tables and Plotly figures in Fabric, Databricks, or Jupyter."""
+        from faircareai.notebook import (
+            create_notebook_display,
+            normalize_display_options,
+        )
+
+        normalized_persona = _normalize_persona(persona)
+        options = normalize_display_options(
+            sections, platform=platform, max_rows=max_rows, plotlyjs=plotlyjs
+        )
+        display = create_notebook_display(platform)
+        figures: dict[str, Any] = {}
+        if "figures" in options.sections and display.platform != "terminal":
+            if normalized_persona == OutputPersona.GOVERNANCE:
+                figures = {
+                    "executive_summary": self.plot_executive_summary(),
+                    "go_nogo_scorecard": self.plot_go_nogo_scorecard(),
+                }
+            else:
+                figures = {
+                    "discrimination": self.plot_discrimination(),
+                    "overall_calibration": self.plot_overall_calibration(),
+                    "decision_curve": self.plot_decision_curve(),
+                    "subgroup_comparison": self.plot_subgroup_performance(),
+                }
+                if self.subgroup_performance:
+                    first_attribute = next(iter(self.subgroup_performance))
+                    figures[f"subgroup_calibration_{first_attribute}"] = (
+                        self.plot_subgroup_calibration(first_attribute)
+                    )
+
+        table_sections = {"overall", "subgroups", "disparities", "calibration", "flags"}
+        tables = self.to_tables() if table_sections.intersection(options.sections) else {}
+        display.render(
+            summary=self.summary(),
+            tables=tables,
+            figures=figures,
+            sections=sections,
+            max_rows=max_rows,
+            plotlyjs=plotlyjs,
+        )
+        return self
+
+    def save_artifacts(
+        self,
+        destination: str | Path,
+        *,
+        formats: Sequence[Literal["html", "json", "png", "pdf", "pptx"]] = ("html", "json"),
+        persona: OutputPersona | str = OutputPersona.DATA_SCIENTIST,
+        overwrite: bool = False,
+    ) -> dict[str, Path]:
+        """Atomically stage HTML/JSON artifacts and copy them to an audit folder."""
+        requested = tuple(dict.fromkeys(formats))
+        if not requested:
+            raise ValueError("At least one artifact format is required")
+        filenames = {
+            "html": "report.html",
+            "json": "metrics.json",
+            "png": "figures.zip",
+            "pdf": "report.pdf",
+            "pptx": "report.pptx",
+        }
+        unsupported = [name for name in requested if name not in filenames]
+        if unsupported:
+            raise ValueError(f"Unsupported artifact format(s): {', '.join(unsupported)}")
+        normalized_persona = _normalize_persona(persona)
+
+        output_dir = Path(destination) / self.audit_id
+        final_paths: dict[str, Path] = {
+            name: output_dir / filenames[name] for name in requested
+        }
+        existing = [path for path in final_paths.values() if path.exists()]
+        if existing and not overwrite:
+            raise FileExistsError(
+                f"Artifact already exists: {existing[0]}. Pass overwrite=True to replace it."
+            )
+
+        with tempfile.TemporaryDirectory(prefix="faircareai-") as stage_dir:
+            stage = Path(stage_dir)
+            for artifact_format in requested:
+                staged_path = stage / filenames[artifact_format]
+                if artifact_format == "html":
+                    self.to_html(staged_path, persona=normalized_persona)
+                elif artifact_format == "json":
+                    self.to_json(staged_path)
+                elif artifact_format == "png":
+                    self.to_png(staged_path, persona=normalized_persona)
+                elif artifact_format == "pdf":
+                    self.to_pdf(staged_path, persona=normalized_persona)
+                elif artifact_format == "pptx":
+                    self.to_pptx(staged_path, persona=normalized_persona)
+
+            output_dir.mkdir(parents=True, exist_ok=True)
+            temporary_paths: dict[str, Path] = {}
+            try:
+                for final_format, final_path in final_paths.items():
+                    if not overwrite and final_path.exists():
+                        raise FileExistsError(
+                            f"Artifact already exists: {final_path}. Pass overwrite=True to replace it."
+                        )
+                    temporary = final_path.with_name(f".{final_path.name}.tmp")
+                    shutil.copyfile(stage / filenames[final_format], temporary)
+                    temporary_paths[final_format] = temporary
+                for final_format, final_path in final_paths.items():
+                    os.replace(temporary_paths[final_format], final_path)
+            except Exception:
+                for temporary in temporary_paths.values():
+                    temporary.unlink(missing_ok=True)
+                raise
+        return final_paths
+
+    def save_delta(
+        self,
+        spark: Any,
+        table: str,
+        *,
+        mode: Literal["append", "error"] = "append",
+    ) -> str:
+        """Persist normalized metrics to a caller-selected Spark Delta table."""
+        if mode not in {"append", "error"}:
+            raise ValueError("mode must be either 'append' or 'error'")
+        if not isinstance(table, str) or not table.strip():
+            raise ValueError("table must be a non-empty string")
+
+        exists = bool(spark.catalog.tableExists(table))
+        if mode == "error" and exists:
+            raise FileExistsError(f"Delta table already exists: {table}")
+        if mode == "append" and exists:
+            escaped_id = self.audit_id.replace("'", "''")
+            duplicate_count = (
+                spark.table(table)
+                .where(f"audit_id = '{escaped_id}'")
+                .limit(1)
+                .count()
+            )
+            if duplicate_count:
+                raise ValueError(
+                    f"Audit {self.audit_id} is already present in Delta table {table}"
+                )
+
+        metrics_pdf = self.to_metrics_frame().to_pandas()
+        try:
+            from pyspark.sql.types import (
+                BooleanType,
+                DoubleType,
+                LongType,
+                StringType,
+                StructField,
+                StructType,
+            )
+
+            schema = StructType(
+                [
+                    StructField("audit_id", StringType(), True),
+                    StructField("run_timestamp", StringType(), True),
+                    StructField("model_name", StringType(), True),
+                    StructField("model_version", StringType(), True),
+                    StructField("section", StringType(), True),
+                    StructField("attribute", StringType(), True),
+                    StructField("group", StringType(), True),
+                    StructField("metric", StringType(), True),
+                    StructField("value", DoubleType(), True),
+                    StructField("ci_lower", DoubleType(), True),
+                    StructField("ci_upper", DoubleType(), True),
+                    StructField("n", LongType(), True),
+                    StructField("status", StringType(), True),
+                    StructField("suppressed_in_reports", BooleanType(), False),
+                ]
+            )
+            spark_frame = spark.createDataFrame(metrics_pdf, schema=schema)
+        except ImportError:
+            spark_frame = spark.createDataFrame(metrics_pdf)
+        write_mode = "append" if mode == "append" else "errorifexists"
+        spark_frame.write.format("delta").mode(write_mode).saveAsTable(table)
+        return table
+
+    def _metric_rows(
+        self,
+        *,
+        section: str,
+        metrics: dict[str, Any],
+        attribute: str | None = None,
+        group: str | None = None,
+        suppressed_groups: set[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for metric, value in metrics.items():
+            if isinstance(value, dict):
+                for nested_group, nested_value in value.items():
+                    row = self._metric_row(
+                        section=section,
+                        metric=metric,
+                        value=nested_value,
+                        metrics=value,
+                        attribute=attribute,
+                        group=str(nested_group),
+                        suppressed=str(nested_group) in (suppressed_groups or set()),
+                    )
+                    if row is not None:
+                        rows.append(row)
+            else:
+                row = self._metric_row(
+                    section=section,
+                    metric=metric,
+                    value=value,
+                    metrics=metrics,
+                    attribute=attribute,
+                    group=group,
+                    suppressed=group in (suppressed_groups or set()) if group else False,
+                )
+                if row is not None:
+                    rows.append(row)
+        return rows
+
+    def _metric_row(
+        self,
+        *,
+        section: str,
+        metric: str,
+        value: Any,
+        metrics: dict[str, Any],
+        attribute: str | None = None,
+        group: str | None = None,
+        n: int | None = None,
+        suppressed: bool = False,
+    ) -> dict[str, Any] | None:
+        if metric in {"n", "suppressed_in_reports"} or _is_metadata_metric(metric):
+            return None
+        numeric_value = _as_float(value)
+        if numeric_value is None:
+            return None
+        ci = metrics.get(f"{metric}_ci_95", metrics.get(f"{metric}_ci"))
+        ci_lower, ci_upper = _ci_bounds(ci)
+        row = self._base_metric_row(
+            section=section,
+            attribute=attribute,
+            group=group,
+            metric=metric,
+            value=numeric_value,
+            n=n,
+            suppressed=suppressed,
+        )
+        row["ci_lower"] = ci_lower
+        row["ci_upper"] = ci_upper
+        return row
+
+    def _base_metric_row(
+        self,
+        *,
+        section: str,
+        attribute: str | None,
+        group: str | None,
+        metric: str,
+        value: float | None,
+        n: int | None,
+        status: str | None = None,
+        suppressed: bool = False,
+    ) -> dict[str, Any]:
+        return {
+            "audit_id": self.audit_id,
+            "run_timestamp": self.run_timestamp,
+            "model_name": self.config.model_name,
+            "model_version": self.config.model_version,
+            "section": section,
+            "attribute": attribute,
+            "group": group,
+            "metric": metric,
+            "value": value,
+            "ci_lower": None,
+            "ci_upper": None,
+            "n": n,
+            "status": status,
+            "suppressed_in_reports": suppressed,
+        }
 
     # === Export Methods ===
 
@@ -661,6 +1099,8 @@ class AuditResults:
                 if not isinstance(eo_diffs, dict):
                     continue
                 for group, diff in eo_diffs.items():
+                    if str(group) in {str(item) for item in metrics.get("suppressed_groups", [])}:
+                        continue
                     # Skip None values
                     if diff is None:
                         continue
@@ -676,7 +1116,15 @@ class AuditResults:
                 # Get groups from nested structure
                 groups = metrics.get("groups", metrics)
                 n_groups += len(
-                    [k for k in groups if k not in ("reference", "attribute", "threshold")]
+                    [
+                        k
+                        for k in groups
+                        if k not in ("reference", "attribute", "threshold")
+                        and not (
+                            isinstance(groups.get(k), dict)
+                            and groups[k].get("suppressed_in_reports", False)
+                        )
+                    ]
                 )
 
         return AuditSummary(
@@ -736,3 +1184,43 @@ def _make_json_serializable(obj: Any) -> Any:
         return obj.item()
     else:
         return obj
+
+
+def _as_float(value: Any) -> float | None:
+    """Return finite numeric values while excluding booleans and containers."""
+    if isinstance(value, (bool, dict, list, tuple)) or value is None:
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    return numeric if np.isfinite(numeric) else None
+
+
+def _as_int(value: Any) -> int | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _as_string(value: Any) -> str | None:
+    return None if value is None else str(value)
+
+
+def _ci_bounds(value: Any) -> tuple[float | None, float | None]:
+    if not isinstance(value, (list, tuple, np.ndarray)) or len(value) < 2:
+        return None, None
+    return _as_float(value[0]), _as_float(value[1])
+
+
+def _is_metadata_metric(metric: str) -> bool:
+    return metric.endswith(("_ci", "_ci_95", "_ci_fmt", "_fmt")) or metric in {
+        "attribute",
+        "reference",
+        "threshold",
+        "is_reference",
+        "small_sample_warning",
+    }

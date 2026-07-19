@@ -132,7 +132,14 @@ class TestSuggestSensitiveAttributes:
 
     @pytest.mark.parametrize(
         "column",
-        ["payor", "primary_payor", "financial_class"],
+        [
+            "payor",
+            "payor_type",
+            "payor_category",
+            "insurance_category",
+            "primary_payor",
+            "financial_class",
+        ],
     )
     def test_detects_epic_payor_columns(self, column: str) -> None:
         """Epic/Clarity payor fields are recognized as insurance."""

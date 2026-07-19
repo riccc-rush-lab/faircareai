@@ -5,6 +5,23 @@ All notable changes to FairCareAI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-18
+
+### Added
+
+- Direct, guarded PySpark DataFrame input for Microsoft Fabric and Databricks notebooks
+- Notebook-native tables and Plotly figures through `results.show()` and `run(show=True)`
+- Artifact-directory and Delta-table persistence APIs
+- Subgroup O:E ratios, logistic calibration slopes, confidence intervals, and calibration flags
+- Fast mode, progress output, and parallel subgroup computation
+- Small-cell suppression markers for human-facing tables and figures
+- First-run sensitive-attribute improvements, including payer aliases, separate race and ethnicity, age bands, and unknown groups
+
+### Changed
+
+- Sensitive-attribute indexes are now consistently zero-based; name selection remains preferred
+- Intervention-trigger reports explicitly present both TPR difference and equalized-odds rationale
+
 ## [0.2.7] - 2026-04-11
 
 ### Changed

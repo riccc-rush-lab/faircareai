@@ -113,7 +113,11 @@ class NotebookDisplay:
     ) -> None:
         if platform not in _RESOLVED_PLATFORMS:
             raise ValueError(f"Unsupported resolved notebook platform: {platform}")
-        defaults = _default_display_functions(platform)
+        defaults = (
+            _default_display_functions(platform)
+            if display_table is None or display_html is None or display_text is None
+            else (display_table, display_html, display_text)
+        )
         self.platform = platform
         self._display_table = display_table or defaults[0]
         self._display_html = display_html or defaults[1]
@@ -178,9 +182,10 @@ class NotebookDisplay:
                 )
             return
 
-        for name, figure in figures.items():
+        for index, (name, figure) in enumerate(figures.items()):
             try:
-                html = figure.to_html(full_html=False, include_plotlyjs=plotlyjs)
+                include_plotlyjs: PlotlyJsMode | bool = plotlyjs if index == 0 else False
+                html = figure.to_html(full_html=False, include_plotlyjs=include_plotlyjs)
                 self._display_html(html)
             except Exception as exc:
                 raise DisplayError(
@@ -242,8 +247,11 @@ def _default_display_functions(
 
         table_display = getattr(builtins, "display", None)
         html_display = getattr(builtins, "displayHTML", None)
-        if callable(table_display) and callable(html_display):
-            return table_display, html_display, print
+        return (
+            table_display if callable(table_display) else print,
+            html_display if callable(html_display) else print,
+            print,
+        )
 
     if platform == "jupyter":
         try:

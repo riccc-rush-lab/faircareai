@@ -8,6 +8,7 @@ Methodology: CHAI RAIC Checkpoint 1 (protected attribute documentation).
 Note: Suggestions require explicit user acceptance.
 """
 
+from itertools import pairwise
 from typing import Any
 
 import polars as pl
@@ -27,7 +28,14 @@ SUGGESTED_PATTERNS: dict[str, dict[str, Any]] = {
         ),
     },
     "ethnicity": {
-        "patterns": ["ethnicity", "patient_ethnicity", "ethnicity_cd", "ethnic_group"],
+        "patterns": [
+            "ethnicity",
+            "patient_ethnicity",
+            "ethnicity_cd",
+            "ethnic_group",
+            "hispanic_indicator",
+            "race_ethnicity",
+        ],
         "suggested_reference": "Not Hispanic or Latino",
         "clinical_justification": (
             "Ethnicity is distinct from race in clinical demographic data. "
@@ -58,6 +66,9 @@ SUGGESTED_PATTERNS: dict[str, dict[str, Any]] = {
             "coverage",
             "payer_type",
             "payer_category",
+            "payor_type",
+            "payor_category",
+            "insurance_category",
             "payor",
             "primary_payor",
             "financial_class",
@@ -189,7 +200,7 @@ def suggest_sensitive_attributes(
         )
         if not resolved_bins or any(
             current >= following
-            for current, following in zip(resolved_bins, resolved_bins[1:], strict=False)
+            for current, following in pairwise(resolved_bins)
         ):
             raise ValueError("age_bins must contain strictly increasing upper bounds")
         if len(resolved_labels) != len(resolved_bins) + 1:

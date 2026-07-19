@@ -21,6 +21,7 @@ import pytest
 from faircareai.core.audit import AuditResult, FairAudit, FairCareAudit
 from faircareai.core.config import FairnessConfig, FairnessMetric, UseCaseType
 from faircareai.core.exceptions import ConfigurationError, DataValidationError
+from faircareai.core.results import AuditResults
 
 
 @pytest.fixture
@@ -93,6 +94,25 @@ class TestFairCareAuditInit:
             threshold=0.3,
         )
         assert audit.threshold == 0.3
+
+    def test_include_unknown_materializes_missing_group(self) -> None:
+        data = pl.DataFrame(
+            {"y_true": [0, 1, 0, 1], "y_prob": [0.1, 0.9, 0.2, 0.8], "race": ["A", None, "A", None]}
+        )
+        audit = FairCareAudit(data, "y_prob", "y_true", include_unknown=True)
+        audit.add_sensitive_attribute("race")
+        assert audit.df["race"].to_list() == ["A", "Unknown", "A", "Unknown"]
+        summary = audit._compute_descriptive_statistics()
+        assert summary["attribute_distributions"]["race"]["missing_rate"] == 0.5
+        assert "Unknown" in summary["attribute_distributions"]["race"]["groups"]
+
+    def test_exclude_unknown_leaves_missing_values(self) -> None:
+        data = pl.DataFrame(
+            {"y_true": [0, 1], "y_prob": [0.1, 0.9], "race": ["A", None]}
+        )
+        audit = FairCareAudit(data, "y_prob", "y_true", include_unknown=False)
+        audit.add_sensitive_attribute("race")
+        assert audit.df["race"].null_count() == 1
 
     def test_constructor_registers_sensitive_attributes(
         self, sample_data: pl.DataFrame
@@ -507,6 +527,36 @@ class TestRun:
         results = configured_audit.run(bootstrap_ci=False)
         assert results is not None
         assert results.config is not None
+
+    def test_fast_mode_records_resolved_settings_and_progress(
+        self, configured_audit: FairCareAudit, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        results = configured_audit.run(bootstrap_ci=False, fast=True, n_jobs=1)
+        output = capsys.readouterr().out
+        assert "[1/6]" in output
+        assert "Audit complete in" in output
+        assert results.reproducibility["fast"] is True
+        assert results.reproducibility["n_bootstrap"] == 200
+        assert results.reproducibility["n_jobs"] == 1
+
+    def test_progress_can_be_disabled(
+        self, configured_audit: FairCareAudit, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        configured_audit.run(bootstrap_ci=False, fast=True, progress=False)
+        assert "Audit complete in" not in capsys.readouterr().out
+
+    def test_calibration_deviation_flags_include_metric_context(
+        self, configured_audit: FairCareAudit
+    ) -> None:
+        results = AuditResults(config=configured_audit.config)
+        results.subgroup_performance = {
+            "race": {"groups": {"A": {"oe_ratio": 1.25, "calibration_slope": 0.7}}}
+        }
+        flags = configured_audit._check_calibration_violations(
+            results, configured_audit.config.thresholds
+        )
+        assert {flag["metric"] for flag in flags} == {"oe_ratio", "calibration_slope"}
+        assert all(flag["attribute"] == "race" and flag["group"] == "A" for flag in flags)
 
     def test_run_with_bootstrap(self, configured_audit: FairCareAudit) -> None:
         """Test audit run with bootstrap CI."""

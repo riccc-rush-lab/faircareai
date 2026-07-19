@@ -118,12 +118,10 @@ def _normalize_columns(columns: Sequence[str]) -> list[str]:
     else:
         raw_columns = columns
 
-    normalized: list[str] = []
     for column in raw_columns:
         if not isinstance(column, str) or not column:
             raise DataValidationError("Selected Spark column names must be non-empty strings")
-        if column not in normalized:
-            normalized.append(column)
+    normalized = list(dict.fromkeys(raw_columns))
     if not normalized:
         raise DataValidationError("At least one Spark column must be selected")
     return normalized
@@ -189,3 +187,7 @@ def _to_pandas_with_arrow(data: Any) -> Any:
     finally:
         if previous is not None:
             conf.set(key, previous)
+        else:
+            unset = getattr(conf, "unset", None)
+            if callable(unset):
+                unset(key)

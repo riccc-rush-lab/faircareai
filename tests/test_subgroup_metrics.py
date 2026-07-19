@@ -81,6 +81,22 @@ class TestComputeSubgroupMetrics:
         assert "Black" in result["groups"]
         assert "Hispanic" in result["groups"]
 
+    def test_parallel_subgroups_preserve_point_estimates(self, sample_df: pl.DataFrame) -> None:
+        sequential = compute_subgroup_metrics(
+            sample_df, "y_prob", "y_true", "group", bootstrap_ci=False, n_jobs=1
+        )
+        parallel = compute_subgroup_metrics(
+            sample_df, "y_prob", "y_true", "group", bootstrap_ci=False, n_jobs=2
+        )
+        for group in sequential["groups"]:
+            assert parallel["groups"][group]["auroc"] == pytest.approx(
+                sequential["groups"][group]["auroc"]
+            )
+            assert parallel["groups"][group]["oe_ratio"] == pytest.approx(
+                sequential["groups"][group]["oe_ratio"]
+            )
+        assert parallel["disparities"] == sequential["disparities"]
+
     def test_contains_reference(self, sample_df: pl.DataFrame) -> None:
         """Test that reference group is set."""
         result = compute_subgroup_metrics(

@@ -680,6 +680,9 @@ class FairnessConfig:
             "calibration_diff": 0.05,  # Adjust based on decision context
             "min_auroc": 0.65,  # Adjust based on use case
             "max_missing_rate": 0.10,  # Adjust based on data quality standards
+            "suppress_cell_n": 11,  # Publication-safe small-cell display threshold
+            "max_oe_deviation": 0.10,  # Maximum absolute deviation from ideal O:E = 1
+            "max_calibration_slope_deviation": 0.10,  # Maximum deviation from slope = 1
         }
     )
 

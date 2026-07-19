@@ -41,6 +41,7 @@ def compute_subgroup_metrics(
     bootstrap_ci: bool = True,
     n_bootstrap: int = 500,
     random_seed: int | None = DEFAULT_BOOTSTRAP_SEED,
+    n_jobs: int = 1,
 ) -> dict[str, Any]:
     """Compute comprehensive metrics for each subgroup.
 
@@ -54,6 +55,7 @@ def compute_subgroup_metrics(
         bootstrap_ci: Whether to compute bootstrap CI.
         n_bootstrap: Number of bootstrap iterations.
         random_seed: Random seed for bootstrap resampling.
+        n_jobs: Number of subgroup workers; ``-1`` uses all available cores.
 
     Returns:
         Dict with per-subgroup performance and fairness metrics.
@@ -70,6 +72,35 @@ def compute_subgroup_metrics(
     reference = determine_reference_group(groups, df, group_col, reference)
 
     results["reference"] = reference
+
+    if n_jobs != 1 and len(groups) > 1:
+        from joblib import Parallel, delayed
+
+        def compute_group(group: Any) -> tuple[str, dict[str, Any]]:
+            group_key = str(group)
+            single = compute_subgroup_metrics(
+                filter_to_group(df, group_col, group),
+                y_prob_col,
+                y_true_col,
+                group_col,
+                threshold=threshold,
+                reference=group_key,
+                bootstrap_ci=bootstrap_ci,
+                n_bootstrap=n_bootstrap,
+                random_seed=random_seed,
+                n_jobs=1,
+            )
+            metrics = single["groups"][group_key]
+            metrics["is_reference"] = group_key == str(reference)
+            return group_key, metrics
+
+        results["groups"] = dict(
+            Parallel(n_jobs=n_jobs, prefer="threads")(
+                delayed(compute_group)(group) for group in groups
+            )
+        )
+        results["disparities"] = _compute_subgroup_disparities(results, reference)
+        return results
 
     # Compute metrics for each group
     for group in groups:
@@ -202,6 +233,8 @@ def _compute_oe_ratio(
 def _compute_calibration_slope(
     y_true: np.ndarray,
     y_prob: np.ndarray,
+    *,
+    log_failure: bool = True,
 ) -> tuple[float | None, str | None]:
     """Fit outcome ~ intercept + slope * logit(prediction)."""
     if len(np.unique(y_true)) < 2:
@@ -223,7 +256,8 @@ def _compute_calibration_slope(
         if not bool(fit.mle_retvals.get("converged", True)) or not np.isfinite(slope):
             raise ValueError("calibration model did not converge to a finite slope")
     except Exception as exc:  # statsmodels exposes several fit-specific exception classes
-        logger.warning("Subgroup calibration slope unavailable: %s", exc)
+        if log_failure:
+            logger.warning("Subgroup calibration slope unavailable: %s", exc)
         return None, "calibration_slope_fit_failed"
 
     return slope, None
@@ -237,7 +271,7 @@ def _oe_ratio_for_bootstrap(y_true: np.ndarray, y_prob: np.ndarray) -> float:
 
 
 def _calibration_slope_for_bootstrap(y_true: np.ndarray, y_prob: np.ndarray) -> float:
-    value, warning = _compute_calibration_slope(y_true, y_prob)
+    value, warning = _compute_calibration_slope(y_true, y_prob, log_failure=False)
     if value is None:
         raise ValueError(warning or "calibration slope unavailable")
     return value
