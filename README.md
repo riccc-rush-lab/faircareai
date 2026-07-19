@@ -853,7 +853,7 @@ If you use FairCareAI in your research or clinical implementation, please cite:
   author = {FairCareAI Contributors},
   year = {2026},
   url = {https://github.com/riccc-rush-lab/faircareai},
-  version = {0.2.7},
+  version = {0.3.0},
   note = {Python package for auditing ML fairness in healthcare}
 }
 ```

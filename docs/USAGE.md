@@ -1076,7 +1076,7 @@ df = df.sample(n=100000, seed=42)
 
 ```bash
 # Install export dependencies
-pip install "faircareai[export]"
+pip install "faircare[export]"
 
 # On macOS, may need:
 brew install pango
