@@ -160,6 +160,130 @@ class TestComputeSubgroupMetrics:
         has_ci = any("auroc_ci_95" in g for g in result["groups"].values() if "error" not in g)
         assert has_ci
 
+    def test_computes_observed_expected_ratio_and_calibration_slope(self) -> None:
+        """Each eligible subgroup includes the Van Calster calibration pair."""
+        rng = np.random.default_rng(19)
+        y_prob = rng.uniform(0.05, 0.95, 2_000)
+        y_true = rng.binomial(1, y_prob)
+        df = pl.DataFrame(
+            {"group": ["A"] * len(y_true), "y_true": y_true, "y_prob": y_prob}
+        )
+
+        group = compute_subgroup_metrics(
+            df, "y_prob", "y_true", "group", bootstrap_ci=False
+        )["groups"]["A"]
+
+        assert group["oe_ratio"] == pytest.approx(y_true.sum() / y_prob.sum())
+        assert group["calibration_slope"] == pytest.approx(1.0, abs=0.15)
+        assert group["calibration_warnings"] == []
+
+    def test_calibration_bootstrap_intervals_are_deterministic(self, sample_df: pl.DataFrame) -> None:
+        """O:E and slope percentile intervals repeat for a fixed seed."""
+        first = compute_subgroup_metrics(
+            sample_df,
+            "y_prob",
+            "y_true",
+            "group",
+            bootstrap_ci=True,
+            n_bootstrap=30,
+            random_seed=71,
+        )
+        second = compute_subgroup_metrics(
+            sample_df,
+            "y_prob",
+            "y_true",
+            "group",
+            bootstrap_ci=True,
+            n_bootstrap=30,
+            random_seed=71,
+        )
+
+        for group_name in first["groups"]:
+            assert first["groups"][group_name]["oe_ratio_ci_95"] == second["groups"][group_name][
+                "oe_ratio_ci_95"
+            ]
+            assert first["groups"][group_name]["calibration_slope_ci_95"] == second["groups"][
+                group_name
+            ]["calibration_slope_ci_95"]
+
+    def test_single_class_returns_no_slope_with_warning(self) -> None:
+        """A degenerate outcome never receives an ideal slope fallback."""
+        df = pl.DataFrame(
+            {
+                "group": ["A"] * 20,
+                "y_true": [1] * 20,
+                "y_prob": np.linspace(0.2, 0.8, 20),
+            }
+        )
+
+        group = compute_subgroup_metrics(
+            df, "y_prob", "y_true", "group", bootstrap_ci=False
+        )["groups"]["A"]
+
+        assert group["calibration_slope"] is None
+        assert "single_class_outcome" in group["calibration_warnings"]
+
+    def test_constant_scores_return_no_slope_with_warning(self) -> None:
+        """Constant scores are explicitly unavailable rather than reported as 1."""
+        df = pl.DataFrame(
+            {
+                "group": ["A"] * 20,
+                "y_true": [0, 1] * 10,
+                "y_prob": [0.5] * 20,
+            }
+        )
+
+        group = compute_subgroup_metrics(
+            df, "y_prob", "y_true", "group", bootstrap_ci=False
+        )["groups"]["A"]
+
+        assert group["calibration_slope"] is None
+        assert "constant_predicted_probability" in group["calibration_warnings"]
+
+    def test_zero_expected_events_return_no_oe_ratio_with_warning(self) -> None:
+        """A zero expected-event denominator is marked unavailable."""
+        df = pl.DataFrame(
+            {
+                "group": ["A"] * 20,
+                "y_true": [0, 1] * 10,
+                "y_prob": [0.0] * 20,
+            }
+        )
+
+        group = compute_subgroup_metrics(
+            df, "y_prob", "y_true", "group", bootstrap_ci=False
+        )["groups"]["A"]
+
+        assert group["oe_ratio"] is None
+        assert "nonpositive_expected_events" in group["calibration_warnings"]
+
+    def test_failed_slope_fit_returns_warning(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Numerical fit failures are explicit and never replaced with slope=1."""
+        import faircareai.metrics.subgroup as subgroup_module
+
+        class FailingLogit:
+            def __init__(self, *_args: object, **_kwargs: object) -> None:
+                pass
+
+            def fit(self, **_kwargs: object) -> None:
+                raise np.linalg.LinAlgError("singular")
+
+        monkeypatch.setattr(subgroup_module, "Logit", FailingLogit)
+        df = pl.DataFrame(
+            {
+                "group": ["A"] * 20,
+                "y_true": [0, 1] * 10,
+                "y_prob": np.linspace(0.1, 0.9, 20),
+            }
+        )
+
+        group = compute_subgroup_metrics(
+            df, "y_prob", "y_true", "group", bootstrap_ci=False
+        )["groups"]["A"]
+
+        assert group["calibration_slope"] is None
+        assert "calibration_slope_fit_failed" in group["calibration_warnings"]
+
 
 class TestComputeSubgroupDisparities:
     """Tests for _compute_subgroup_disparities function."""

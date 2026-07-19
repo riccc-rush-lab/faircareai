@@ -91,6 +91,21 @@ class GroupMetrics(TypedDict):
     mean_predicted_prob: float
     """Mean predicted probability for this group."""
 
+    oe_ratio: float | None
+    """Observed events divided by summed predicted probabilities."""
+
+    calibration_slope: float | None
+    """Logistic recalibration slope, or None when it cannot be estimated."""
+
+    calibration_warnings: list[str]
+    """Machine-readable reasons calibration estimates are unavailable."""
+
+    oe_ratio_ci_95: NotRequired[list[float]]
+    """Percentile bootstrap 95% interval for O:E ratio."""
+
+    calibration_slope_ci_95: NotRequired[list[float]]
+    """Percentile bootstrap 95% interval for calibration slope."""
+
     mean_calibration_error: float
     """Mean difference between predicted probability and observed rate (calibration-in-the-large)."""
 
@@ -133,6 +148,11 @@ class GroupMetricsWithError(TypedDict, total=False):
     auroc_ci_95: list[float | None]
     mean_predicted_prob: float
     mean_calibration_error: float
+    oe_ratio: float | None
+    calibration_slope: float | None
+    calibration_warnings: list[str]
+    oe_ratio_ci_95: list[float]
+    calibration_slope_ci_95: list[float]
     tp: int
     fp: int
     tn: int
